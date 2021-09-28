@@ -1,5 +1,11 @@
-State 17 conflicts: 11 shift/reduce
-State 18 conflicts: 11 shift/reduce
+Terminals unused in grammar
+
+    STRING_LITERAL
+
+
+State 1 conflicts: 1 shift/reduce
+State 12 conflicts: 1 shift/reduce
+State 14 conflicts: 1 shift/reduce
 
 
 Grammar
@@ -8,867 +14,750 @@ Grammar
 
     1 Start: TEXT
 
-    2 TEXT: PSEUDO
-    3     | LABEL
-    4     | STMT
-    5     | PSEUDO TEXT
-    6     | LABEL TEXT
-    7     | STMT TEXT
+    2 TEXT: PSEUDOS
+    3     | LABEL STMTS
+    4     | PSEUDOS TEXT
+    5     | LABEL STMTS TEXT
 
-    8 STMT: OP
-    9     | OP STMT
+    6 PSEUDOS: PSEUDO
+    7        | PSEUDO PSEUDOS
 
-   10 OP: ADDR
-   11   | IMME
-   12   | SYB
-   13   | ADDR ',' OP
-   14   | IMME ',' OP
-   15   | SYB ',' OP
-   16   | SYB OP
+    8 STMTS: STMT
+    9      | PSEUDO
+   10      | STMT STMTS
+   11      | PSEUDO STMTS
 
-   17 SYB: STR
-   18    | ADD
-   19    | MOV
-   20    | LDR
-   21    | BX
-   22    | FP
-   23    | SP
-   24    | STRING_LITERAL
-   25    | IDENTIFIER
+   12 STMT: ADD STMT_ADD
+   13     | MOV STMT_MOV
+   14     | STR STMT_STR
+   15     | LDR STMT_LDR
+   16     | BX STMT_BX
 
-   26 ADDR: '[' OP ']'
-   27     | '[' OP ']' '!'
+   17 STMT_ADD: REGS ',' REGS ',' IMME
+   18         | REGS ',' REGS ',' REGS
 
-   28 IMME: '#' Exp
+   19 STMT_MOV: REGS ',' REGS
+   20         | REGS ',' IMME
 
-   29 Exp: AddExp
+   21 STMT_STR: REGS ',' ADDRS
+   22         | REGS ',' ADDRS ',' IMME
 
-   30 AddExp: MulExp
-   31       | AddExp '+' MulExp
-   32       | AddExp '-' MulExp
+   23 STMT_LDR: REGS ',' ADDRS
+   24         | REGS ',' ADDRS ',' IMME
 
-   33 MulExp: UnaryExp
-   34       | MulExp '*' UnaryExp
-   35       | MulExp '/' UnaryExp
-   36       | MulExp '%' UnaryExp
+   25 STMT_BX: LR
 
-   37 UnaryExp: PrimaryExp
-   38         | UnaryOp UnaryExp
+   26 ADDRS: ADDR
+   27      | ADDR '!'
 
-   39 PrimaryExp: '(' Exp ')'
-   40           | NUMBER
+   28 ADDR: '[' REGS ']'
+   29     | '[' REGS ',' IMME ']'
 
-   41 UnaryOp: '+'
-   42        | '-'
-   43        | '!'
+   30 REGS: REG
+   31     | SPECIAL_REG
+
+   32 SPECIAL_REG: FP
+   33            | SP
+   34            | LR
+   35            | IP
+
+   36 IMME: '#' UnaryExp
+
+   37 UnaryExp: NUMBER
+   38         | '-' NUMBER
 
 
 Terminals, with rules where they appear
 
     $end (0) 0
-    '!' (33) 27 43
-    '#' (35) 28
-    '%' (37) 36
-    '(' (40) 39
-    ')' (41) 39
-    '*' (42) 34
-    '+' (43) 31 41
-    ',' (44) 13 14 15
-    '-' (45) 32 42
-    '/' (47) 35
-    '[' (91) 26 27
-    ']' (93) 26 27
+    '!' (33) 27
+    '#' (35) 36
+    ',' (44) 17 18 19 20 21 22 23 24 29
+    '-' (45) 38
+    '[' (91) 28 29
+    ']' (93) 28 29
     error (256)
-    STR (258) 17
-    ADD (259) 18
-    MOV (260) 19
-    LDR (261) 20
-    BX (262) 21
-    FP (263) 22
-    SP (264) 23
-    STRING_LITERAL (265) 24
-    NUMBER <v_int> (266) 40
-    IDENTIFIER <v_string> (267) 25
-    PSEUDO <v_string> (268) 2 5
-    LABEL <v_string> (269) 3 6
+    FP (258) 32
+    SP (259) 33
+    LR (260) 25 34
+    IP (261) 35
+    STRING_LITERAL (262)
+    ADD (263) 12
+    MOV (264) 13
+    STR (265) 14
+    LDR (266) 15
+    BX (267) 16
+    NUMBER <v_int> (268) 37 38
+    REG <v_string> (269) 30
+    PSEUDO <v_string> (270) 6 7 9 11
+    LABEL <v_string> (271) 3 5
 
 
 Nonterminals, with rules where they appear
 
-    $accept (27)
+    $accept (23)
         on left: 0
-    Start (28)
+    Start <p_list> (24)
         on left: 1
         on right: 0
-    TEXT <p_ast> (29)
-        on left: 2 3 4 5 6 7
-        on right: 1 5 6 7
-    STMT <p_ast> (30)
-        on left: 8 9
-        on right: 4 7 9
-    OP <p_ast> (31)
-        on left: 10 11 12 13 14 15 16
-        on right: 8 9 13 14 15 16 26 27
-    SYB <p_ast> (32)
-        on left: 17 18 19 20 21 22 23 24 25
-        on right: 12 15 16
-    ADDR <p_ast> (33)
+    TEXT <p_list> (25)
+        on left: 2 3 4 5
+        on right: 1 4 5
+    PSEUDOS <p_list> (26)
+        on left: 6 7
+        on right: 2 4 7
+    STMTS <p_list> (27)
+        on left: 8 9 10 11
+        on right: 3 5 10 11
+    STMT <p_list> (28)
+        on left: 12 13 14 15 16
+        on right: 8 10
+    STMT_ADD <p_list> (29)
+        on left: 17 18
+        on right: 12
+    STMT_MOV <p_list> (30)
+        on left: 19 20
+        on right: 13
+    STMT_STR <p_list> (31)
+        on left: 21 22
+        on right: 14
+    STMT_LDR <p_list> (32)
+        on left: 23 24
+        on right: 15
+    STMT_BX <p_list> (33)
+        on left: 25
+        on right: 16
+    ADDRS <p_list> (34)
         on left: 26 27
-        on right: 10 13
-    IMME <p_ast> (34)
-        on left: 28
-        on right: 11 14
-    Exp <p_ast> (35)
-        on left: 29
-        on right: 28 39
-    AddExp <p_ast> (36)
-        on left: 30 31 32
-        on right: 29 31 32
-    MulExp <p_ast> (37)
-        on left: 33 34 35 36
-        on right: 30 31 32 34 35 36
-    UnaryExp <p_ast> (38)
+        on right: 21 22 23 24
+    ADDR <p_list> (35)
+        on left: 28 29
+        on right: 26 27
+    REGS <p_list> (36)
+        on left: 30 31
+        on right: 17 18 19 20 21 22 23 24 28 29
+    SPECIAL_REG <p_list> (37)
+        on left: 32 33 34 35
+        on right: 31
+    IMME <p_list> (38)
+        on left: 36
+        on right: 17 20 22 24 29
+    UnaryExp <p_list> (39)
         on left: 37 38
-        on right: 33 34 35 36 38
-    PrimaryExp <p_ast> (39)
-        on left: 39 40
-        on right: 37
-    UnaryOp <p_ast> (40)
-        on left: 41 42 43
-        on right: 38
+        on right: 36
 
 
 State 0
 
     0 $accept: . Start $end
 
-    STR             shift, and go to state 1
-    ADD             shift, and go to state 2
-    MOV             shift, and go to state 3
-    LDR             shift, and go to state 4
-    BX              shift, and go to state 5
-    FP              shift, and go to state 6
-    SP              shift, and go to state 7
-    STRING_LITERAL  shift, and go to state 8
-    IDENTIFIER      shift, and go to state 9
-    PSEUDO          shift, and go to state 10
-    LABEL           shift, and go to state 11
-    '['             shift, and go to state 12
-    '#'             shift, and go to state 13
+    PSEUDO  shift, and go to state 1
+    LABEL   shift, and go to state 2
 
-    Start  go to state 14
-    TEXT   go to state 15
-    STMT   go to state 16
-    OP     go to state 17
-    SYB    go to state 18
-    ADDR   go to state 19
-    IMME   go to state 20
+    Start    go to state 3
+    TEXT     go to state 4
+    PSEUDOS  go to state 5
 
 
 State 1
 
-   17 SYB: STR .
+    6 PSEUDOS: PSEUDO .
+    7        | PSEUDO . PSEUDOS
 
-    $default  reduce using rule 17 (SYB)
+    PSEUDO  shift, and go to state 1
+
+    PSEUDO    [reduce using rule 6 (PSEUDOS)]
+    $default  reduce using rule 6 (PSEUDOS)
+
+    PSEUDOS  go to state 6
 
 
 State 2
 
-   18 SYB: ADD .
+    3 TEXT: LABEL . STMTS
+    5     | LABEL . STMTS TEXT
 
-    $default  reduce using rule 18 (SYB)
+    ADD     shift, and go to state 7
+    MOV     shift, and go to state 8
+    STR     shift, and go to state 9
+    LDR     shift, and go to state 10
+    BX      shift, and go to state 11
+    PSEUDO  shift, and go to state 12
+
+    STMTS  go to state 13
+    STMT   go to state 14
 
 
 State 3
 
-   19 SYB: MOV .
+    0 $accept: Start . $end
 
-    $default  reduce using rule 19 (SYB)
+    $end  shift, and go to state 15
 
 
 State 4
-
-   20 SYB: LDR .
-
-    $default  reduce using rule 20 (SYB)
-
-
-State 5
-
-   21 SYB: BX .
-
-    $default  reduce using rule 21 (SYB)
-
-
-State 6
-
-   22 SYB: FP .
-
-    $default  reduce using rule 22 (SYB)
-
-
-State 7
-
-   23 SYB: SP .
-
-    $default  reduce using rule 23 (SYB)
-
-
-State 8
-
-   24 SYB: STRING_LITERAL .
-
-    $default  reduce using rule 24 (SYB)
-
-
-State 9
-
-   25 SYB: IDENTIFIER .
-
-    $default  reduce using rule 25 (SYB)
-
-
-State 10
-
-    2 TEXT: PSEUDO .
-    5     | PSEUDO . TEXT
-
-    STR             shift, and go to state 1
-    ADD             shift, and go to state 2
-    MOV             shift, and go to state 3
-    LDR             shift, and go to state 4
-    BX              shift, and go to state 5
-    FP              shift, and go to state 6
-    SP              shift, and go to state 7
-    STRING_LITERAL  shift, and go to state 8
-    IDENTIFIER      shift, and go to state 9
-    PSEUDO          shift, and go to state 10
-    LABEL           shift, and go to state 11
-    '['             shift, and go to state 12
-    '#'             shift, and go to state 13
-
-    $default  reduce using rule 2 (TEXT)
-
-    TEXT  go to state 21
-    STMT  go to state 16
-    OP    go to state 17
-    SYB   go to state 18
-    ADDR  go to state 19
-    IMME  go to state 20
-
-
-State 11
-
-    3 TEXT: LABEL .
-    6     | LABEL . TEXT
-
-    STR             shift, and go to state 1
-    ADD             shift, and go to state 2
-    MOV             shift, and go to state 3
-    LDR             shift, and go to state 4
-    BX              shift, and go to state 5
-    FP              shift, and go to state 6
-    SP              shift, and go to state 7
-    STRING_LITERAL  shift, and go to state 8
-    IDENTIFIER      shift, and go to state 9
-    PSEUDO          shift, and go to state 10
-    LABEL           shift, and go to state 11
-    '['             shift, and go to state 12
-    '#'             shift, and go to state 13
-
-    $default  reduce using rule 3 (TEXT)
-
-    TEXT  go to state 22
-    STMT  go to state 16
-    OP    go to state 17
-    SYB   go to state 18
-    ADDR  go to state 19
-    IMME  go to state 20
-
-
-State 12
-
-   26 ADDR: '[' . OP ']'
-   27     | '[' . OP ']' '!'
-
-    STR             shift, and go to state 1
-    ADD             shift, and go to state 2
-    MOV             shift, and go to state 3
-    LDR             shift, and go to state 4
-    BX              shift, and go to state 5
-    FP              shift, and go to state 6
-    SP              shift, and go to state 7
-    STRING_LITERAL  shift, and go to state 8
-    IDENTIFIER      shift, and go to state 9
-    '['             shift, and go to state 12
-    '#'             shift, and go to state 13
-
-    OP    go to state 23
-    SYB   go to state 18
-    ADDR  go to state 19
-    IMME  go to state 20
-
-
-State 13
-
-   28 IMME: '#' . Exp
-
-    NUMBER  shift, and go to state 24
-    '!'     shift, and go to state 25
-    '+'     shift, and go to state 26
-    '-'     shift, and go to state 27
-    '('     shift, and go to state 28
-
-    Exp         go to state 29
-    AddExp      go to state 30
-    MulExp      go to state 31
-    UnaryExp    go to state 32
-    PrimaryExp  go to state 33
-    UnaryOp     go to state 34
-
-
-State 14
-
-    0 $accept: Start . $end
-
-    $end  shift, and go to state 35
-
-
-State 15
 
     1 Start: TEXT .
 
     $default  reduce using rule 1 (Start)
 
 
-State 16
-
-    4 TEXT: STMT .
-    7     | STMT . TEXT
-
-    STR             shift, and go to state 1
-    ADD             shift, and go to state 2
-    MOV             shift, and go to state 3
-    LDR             shift, and go to state 4
-    BX              shift, and go to state 5
-    FP              shift, and go to state 6
-    SP              shift, and go to state 7
-    STRING_LITERAL  shift, and go to state 8
-    IDENTIFIER      shift, and go to state 9
-    PSEUDO          shift, and go to state 10
-    LABEL           shift, and go to state 11
-    '['             shift, and go to state 12
-    '#'             shift, and go to state 13
-
-    $default  reduce using rule 4 (TEXT)
-
-    TEXT  go to state 36
-    STMT  go to state 16
-    OP    go to state 17
-    SYB   go to state 18
-    ADDR  go to state 19
-    IMME  go to state 20
-
-
-State 17
-
-    8 STMT: OP .
-    9     | OP . STMT
-
-    STR             shift, and go to state 1
-    ADD             shift, and go to state 2
-    MOV             shift, and go to state 3
-    LDR             shift, and go to state 4
-    BX              shift, and go to state 5
-    FP              shift, and go to state 6
-    SP              shift, and go to state 7
-    STRING_LITERAL  shift, and go to state 8
-    IDENTIFIER      shift, and go to state 9
-    '['             shift, and go to state 12
-    '#'             shift, and go to state 13
+State 5
 
-    STR             [reduce using rule 8 (STMT)]
-    ADD             [reduce using rule 8 (STMT)]
-    MOV             [reduce using rule 8 (STMT)]
-    LDR             [reduce using rule 8 (STMT)]
-    BX              [reduce using rule 8 (STMT)]
-    FP              [reduce using rule 8 (STMT)]
-    SP              [reduce using rule 8 (STMT)]
-    STRING_LITERAL  [reduce using rule 8 (STMT)]
-    IDENTIFIER      [reduce using rule 8 (STMT)]
-    '['             [reduce using rule 8 (STMT)]
-    '#'             [reduce using rule 8 (STMT)]
-    $default        reduce using rule 8 (STMT)
+    2 TEXT: PSEUDOS .
+    4     | PSEUDOS . TEXT
 
-    STMT  go to state 37
-    OP    go to state 17
-    SYB   go to state 18
-    ADDR  go to state 19
-    IMME  go to state 20
+    PSEUDO  shift, and go to state 1
+    LABEL   shift, and go to state 2
 
+    $default  reduce using rule 2 (TEXT)
 
-State 18
+    TEXT     go to state 16
+    PSEUDOS  go to state 5
 
-   12 OP: SYB .
-   15   | SYB . ',' OP
-   16   | SYB . OP
 
-    STR             shift, and go to state 1
-    ADD             shift, and go to state 2
-    MOV             shift, and go to state 3
-    LDR             shift, and go to state 4
-    BX              shift, and go to state 5
-    FP              shift, and go to state 6
-    SP              shift, and go to state 7
-    STRING_LITERAL  shift, and go to state 8
-    IDENTIFIER      shift, and go to state 9
-    ','             shift, and go to state 38
-    '['             shift, and go to state 12
-    '#'             shift, and go to state 13
+State 6
 
-    STR             [reduce using rule 12 (OP)]
-    ADD             [reduce using rule 12 (OP)]
-    MOV             [reduce using rule 12 (OP)]
-    LDR             [reduce using rule 12 (OP)]
-    BX              [reduce using rule 12 (OP)]
-    FP              [reduce using rule 12 (OP)]
-    SP              [reduce using rule 12 (OP)]
-    STRING_LITERAL  [reduce using rule 12 (OP)]
-    IDENTIFIER      [reduce using rule 12 (OP)]
-    '['             [reduce using rule 12 (OP)]
-    '#'             [reduce using rule 12 (OP)]
-    $default        reduce using rule 12 (OP)
+    7 PSEUDOS: PSEUDO PSEUDOS .
 
-    OP    go to state 39
-    SYB   go to state 18
-    ADDR  go to state 19
-    IMME  go to state 20
+    $default  reduce using rule 7 (PSEUDOS)
 
 
-State 19
+State 7
 
-   10 OP: ADDR .
-   13   | ADDR . ',' OP
+   12 STMT: ADD . STMT_ADD
 
-    ','  shift, and go to state 40
+    FP   shift, and go to state 17
+    SP   shift, and go to state 18
+    LR   shift, and go to state 19
+    IP   shift, and go to state 20
+    REG  shift, and go to state 21
 
-    $default  reduce using rule 10 (OP)
+    STMT_ADD     go to state 22
+    REGS         go to state 23
+    SPECIAL_REG  go to state 24
 
 
-State 20
+State 8
 
-   11 OP: IMME .
-   14   | IMME . ',' OP
+   13 STMT: MOV . STMT_MOV
 
-    ','  shift, and go to state 41
+    FP   shift, and go to state 17
+    SP   shift, and go to state 18
+    LR   shift, and go to state 19
+    IP   shift, and go to state 20
+    REG  shift, and go to state 21
 
-    $default  reduce using rule 11 (OP)
+    STMT_MOV     go to state 25
+    REGS         go to state 26
+    SPECIAL_REG  go to state 24
 
 
-State 21
+State 9
 
-    5 TEXT: PSEUDO TEXT .
+   14 STMT: STR . STMT_STR
 
-    $default  reduce using rule 5 (TEXT)
+    FP   shift, and go to state 17
+    SP   shift, and go to state 18
+    LR   shift, and go to state 19
+    IP   shift, and go to state 20
+    REG  shift, and go to state 21
 
+    STMT_STR     go to state 27
+    REGS         go to state 28
+    SPECIAL_REG  go to state 24
 
-State 22
 
-    6 TEXT: LABEL TEXT .
+State 10
 
-    $default  reduce using rule 6 (TEXT)
+   15 STMT: LDR . STMT_LDR
 
+    FP   shift, and go to state 17
+    SP   shift, and go to state 18
+    LR   shift, and go to state 19
+    IP   shift, and go to state 20
+    REG  shift, and go to state 21
 
-State 23
+    STMT_LDR     go to state 29
+    REGS         go to state 30
+    SPECIAL_REG  go to state 24
 
-   26 ADDR: '[' OP . ']'
-   27     | '[' OP . ']' '!'
 
-    ']'  shift, and go to state 42
+State 11
 
+   16 STMT: BX . STMT_BX
 
-State 24
+    LR  shift, and go to state 31
 
-   40 PrimaryExp: NUMBER .
+    STMT_BX  go to state 32
 
-    $default  reduce using rule 40 (PrimaryExp)
 
+State 12
 
-State 25
+    9 STMTS: PSEUDO .
+   11      | PSEUDO . STMTS
 
-   43 UnaryOp: '!' .
+    ADD     shift, and go to state 7
+    MOV     shift, and go to state 8
+    STR     shift, and go to state 9
+    LDR     shift, and go to state 10
+    BX      shift, and go to state 11
+    PSEUDO  shift, and go to state 12
 
-    $default  reduce using rule 43 (UnaryOp)
+    PSEUDO    [reduce using rule 9 (STMTS)]
+    $default  reduce using rule 9 (STMTS)
 
+    STMTS  go to state 33
+    STMT   go to state 14
 
-State 26
 
-   41 UnaryOp: '+' .
+State 13
 
-    $default  reduce using rule 41 (UnaryOp)
+    3 TEXT: LABEL STMTS .
+    5     | LABEL STMTS . TEXT
 
+    PSEUDO  shift, and go to state 1
+    LABEL   shift, and go to state 2
 
-State 27
+    $default  reduce using rule 3 (TEXT)
 
-   42 UnaryOp: '-' .
+    TEXT     go to state 34
+    PSEUDOS  go to state 5
 
-    $default  reduce using rule 42 (UnaryOp)
 
+State 14
 
-State 28
+    8 STMTS: STMT .
+   10      | STMT . STMTS
 
-   39 PrimaryExp: '(' . Exp ')'
+    ADD     shift, and go to state 7
+    MOV     shift, and go to state 8
+    STR     shift, and go to state 9
+    LDR     shift, and go to state 10
+    BX      shift, and go to state 11
+    PSEUDO  shift, and go to state 12
 
-    NUMBER  shift, and go to state 24
-    '!'     shift, and go to state 25
-    '+'     shift, and go to state 26
-    '-'     shift, and go to state 27
-    '('     shift, and go to state 28
+    PSEUDO    [reduce using rule 8 (STMTS)]
+    $default  reduce using rule 8 (STMTS)
 
-    Exp         go to state 43
-    AddExp      go to state 30
-    MulExp      go to state 31
-    UnaryExp    go to state 32
-    PrimaryExp  go to state 33
-    UnaryOp     go to state 34
+    STMTS  go to state 35
+    STMT   go to state 14
 
 
-State 29
-
-   28 IMME: '#' Exp .
-
-    $default  reduce using rule 28 (IMME)
-
-
-State 30
-
-   29 Exp: AddExp .
-   31 AddExp: AddExp . '+' MulExp
-   32       | AddExp . '-' MulExp
-
-    '+'  shift, and go to state 44
-    '-'  shift, and go to state 45
-
-    $default  reduce using rule 29 (Exp)
-
-
-State 31
-
-   30 AddExp: MulExp .
-   34 MulExp: MulExp . '*' UnaryExp
-   35       | MulExp . '/' UnaryExp
-   36       | MulExp . '%' UnaryExp
-
-    '*'  shift, and go to state 46
-    '/'  shift, and go to state 47
-    '%'  shift, and go to state 48
-
-    $default  reduce using rule 30 (AddExp)
-
-
-State 32
-
-   33 MulExp: UnaryExp .
-
-    $default  reduce using rule 33 (MulExp)
-
-
-State 33
-
-   37 UnaryExp: PrimaryExp .
-
-    $default  reduce using rule 37 (UnaryExp)
-
-
-State 34
-
-   38 UnaryExp: UnaryOp . UnaryExp
-
-    NUMBER  shift, and go to state 24
-    '!'     shift, and go to state 25
-    '+'     shift, and go to state 26
-    '-'     shift, and go to state 27
-    '('     shift, and go to state 28
-
-    UnaryExp    go to state 49
-    PrimaryExp  go to state 33
-    UnaryOp     go to state 34
-
-
-State 35
+State 15
 
     0 $accept: Start $end .
 
     $default  accept
 
 
+State 16
+
+    4 TEXT: PSEUDOS TEXT .
+
+    $default  reduce using rule 4 (TEXT)
+
+
+State 17
+
+   32 SPECIAL_REG: FP .
+
+    $default  reduce using rule 32 (SPECIAL_REG)
+
+
+State 18
+
+   33 SPECIAL_REG: SP .
+
+    $default  reduce using rule 33 (SPECIAL_REG)
+
+
+State 19
+
+   34 SPECIAL_REG: LR .
+
+    $default  reduce using rule 34 (SPECIAL_REG)
+
+
+State 20
+
+   35 SPECIAL_REG: IP .
+
+    $default  reduce using rule 35 (SPECIAL_REG)
+
+
+State 21
+
+   30 REGS: REG .
+
+    $default  reduce using rule 30 (REGS)
+
+
+State 22
+
+   12 STMT: ADD STMT_ADD .
+
+    $default  reduce using rule 12 (STMT)
+
+
+State 23
+
+   17 STMT_ADD: REGS . ',' REGS ',' IMME
+   18         | REGS . ',' REGS ',' REGS
+
+    ','  shift, and go to state 36
+
+
+State 24
+
+   31 REGS: SPECIAL_REG .
+
+    $default  reduce using rule 31 (REGS)
+
+
+State 25
+
+   13 STMT: MOV STMT_MOV .
+
+    $default  reduce using rule 13 (STMT)
+
+
+State 26
+
+   19 STMT_MOV: REGS . ',' REGS
+   20         | REGS . ',' IMME
+
+    ','  shift, and go to state 37
+
+
+State 27
+
+   14 STMT: STR STMT_STR .
+
+    $default  reduce using rule 14 (STMT)
+
+
+State 28
+
+   21 STMT_STR: REGS . ',' ADDRS
+   22         | REGS . ',' ADDRS ',' IMME
+
+    ','  shift, and go to state 38
+
+
+State 29
+
+   15 STMT: LDR STMT_LDR .
+
+    $default  reduce using rule 15 (STMT)
+
+
+State 30
+
+   23 STMT_LDR: REGS . ',' ADDRS
+   24         | REGS . ',' ADDRS ',' IMME
+
+    ','  shift, and go to state 39
+
+
+State 31
+
+   25 STMT_BX: LR .
+
+    $default  reduce using rule 25 (STMT_BX)
+
+
+State 32
+
+   16 STMT: BX STMT_BX .
+
+    $default  reduce using rule 16 (STMT)
+
+
+State 33
+
+   11 STMTS: PSEUDO STMTS .
+
+    $default  reduce using rule 11 (STMTS)
+
+
+State 34
+
+    5 TEXT: LABEL STMTS TEXT .
+
+    $default  reduce using rule 5 (TEXT)
+
+
+State 35
+
+   10 STMTS: STMT STMTS .
+
+    $default  reduce using rule 10 (STMTS)
+
+
 State 36
 
-    7 TEXT: STMT TEXT .
+   17 STMT_ADD: REGS ',' . REGS ',' IMME
+   18         | REGS ',' . REGS ',' REGS
 
-    $default  reduce using rule 7 (TEXT)
+    FP   shift, and go to state 17
+    SP   shift, and go to state 18
+    LR   shift, and go to state 19
+    IP   shift, and go to state 20
+    REG  shift, and go to state 21
+
+    REGS         go to state 40
+    SPECIAL_REG  go to state 24
 
 
 State 37
 
-    9 STMT: OP STMT .
+   19 STMT_MOV: REGS ',' . REGS
+   20         | REGS ',' . IMME
 
-    $default  reduce using rule 9 (STMT)
+    FP   shift, and go to state 17
+    SP   shift, and go to state 18
+    LR   shift, and go to state 19
+    IP   shift, and go to state 20
+    REG  shift, and go to state 21
+    '#'  shift, and go to state 41
+
+    REGS         go to state 42
+    SPECIAL_REG  go to state 24
+    IMME         go to state 43
 
 
 State 38
 
-   15 OP: SYB ',' . OP
+   21 STMT_STR: REGS ',' . ADDRS
+   22         | REGS ',' . ADDRS ',' IMME
 
-    STR             shift, and go to state 1
-    ADD             shift, and go to state 2
-    MOV             shift, and go to state 3
-    LDR             shift, and go to state 4
-    BX              shift, and go to state 5
-    FP              shift, and go to state 6
-    SP              shift, and go to state 7
-    STRING_LITERAL  shift, and go to state 8
-    IDENTIFIER      shift, and go to state 9
-    '['             shift, and go to state 12
-    '#'             shift, and go to state 13
+    '['  shift, and go to state 44
 
-    OP    go to state 50
-    SYB   go to state 18
-    ADDR  go to state 19
-    IMME  go to state 20
+    ADDRS  go to state 45
+    ADDR   go to state 46
 
 
 State 39
 
-   16 OP: SYB OP .
+   23 STMT_LDR: REGS ',' . ADDRS
+   24         | REGS ',' . ADDRS ',' IMME
 
-    $default  reduce using rule 16 (OP)
+    '['  shift, and go to state 44
+
+    ADDRS  go to state 47
+    ADDR   go to state 46
 
 
 State 40
 
-   13 OP: ADDR ',' . OP
+   17 STMT_ADD: REGS ',' REGS . ',' IMME
+   18         | REGS ',' REGS . ',' REGS
 
-    STR             shift, and go to state 1
-    ADD             shift, and go to state 2
-    MOV             shift, and go to state 3
-    LDR             shift, and go to state 4
-    BX              shift, and go to state 5
-    FP              shift, and go to state 6
-    SP              shift, and go to state 7
-    STRING_LITERAL  shift, and go to state 8
-    IDENTIFIER      shift, and go to state 9
-    '['             shift, and go to state 12
-    '#'             shift, and go to state 13
-
-    OP    go to state 51
-    SYB   go to state 18
-    ADDR  go to state 19
-    IMME  go to state 20
+    ','  shift, and go to state 48
 
 
 State 41
 
-   14 OP: IMME ',' . OP
+   36 IMME: '#' . UnaryExp
 
-    STR             shift, and go to state 1
-    ADD             shift, and go to state 2
-    MOV             shift, and go to state 3
-    LDR             shift, and go to state 4
-    BX              shift, and go to state 5
-    FP              shift, and go to state 6
-    SP              shift, and go to state 7
-    STRING_LITERAL  shift, and go to state 8
-    IDENTIFIER      shift, and go to state 9
-    '['             shift, and go to state 12
-    '#'             shift, and go to state 13
+    NUMBER  shift, and go to state 49
+    '-'     shift, and go to state 50
 
-    OP    go to state 52
-    SYB   go to state 18
-    ADDR  go to state 19
-    IMME  go to state 20
+    UnaryExp  go to state 51
 
 
 State 42
 
-   26 ADDR: '[' OP ']' .
-   27     | '[' OP ']' . '!'
+   19 STMT_MOV: REGS ',' REGS .
 
-    '!'  shift, and go to state 53
-
-    $default  reduce using rule 26 (ADDR)
+    $default  reduce using rule 19 (STMT_MOV)
 
 
 State 43
 
-   39 PrimaryExp: '(' Exp . ')'
+   20 STMT_MOV: REGS ',' IMME .
 
-    ')'  shift, and go to state 54
+    $default  reduce using rule 20 (STMT_MOV)
 
 
 State 44
 
-   31 AddExp: AddExp '+' . MulExp
+   28 ADDR: '[' . REGS ']'
+   29     | '[' . REGS ',' IMME ']'
 
-    NUMBER  shift, and go to state 24
-    '!'     shift, and go to state 25
-    '+'     shift, and go to state 26
-    '-'     shift, and go to state 27
-    '('     shift, and go to state 28
+    FP   shift, and go to state 17
+    SP   shift, and go to state 18
+    LR   shift, and go to state 19
+    IP   shift, and go to state 20
+    REG  shift, and go to state 21
 
-    MulExp      go to state 55
-    UnaryExp    go to state 32
-    PrimaryExp  go to state 33
-    UnaryOp     go to state 34
+    REGS         go to state 52
+    SPECIAL_REG  go to state 24
 
 
 State 45
 
-   32 AddExp: AddExp '-' . MulExp
+   21 STMT_STR: REGS ',' ADDRS .
+   22         | REGS ',' ADDRS . ',' IMME
 
-    NUMBER  shift, and go to state 24
-    '!'     shift, and go to state 25
-    '+'     shift, and go to state 26
-    '-'     shift, and go to state 27
-    '('     shift, and go to state 28
+    ','  shift, and go to state 53
 
-    MulExp      go to state 56
-    UnaryExp    go to state 32
-    PrimaryExp  go to state 33
-    UnaryOp     go to state 34
+    $default  reduce using rule 21 (STMT_STR)
 
 
 State 46
 
-   34 MulExp: MulExp '*' . UnaryExp
+   26 ADDRS: ADDR .
+   27      | ADDR . '!'
 
-    NUMBER  shift, and go to state 24
-    '!'     shift, and go to state 25
-    '+'     shift, and go to state 26
-    '-'     shift, and go to state 27
-    '('     shift, and go to state 28
+    '!'  shift, and go to state 54
 
-    UnaryExp    go to state 57
-    PrimaryExp  go to state 33
-    UnaryOp     go to state 34
+    $default  reduce using rule 26 (ADDRS)
 
 
 State 47
 
-   35 MulExp: MulExp '/' . UnaryExp
+   23 STMT_LDR: REGS ',' ADDRS .
+   24         | REGS ',' ADDRS . ',' IMME
 
-    NUMBER  shift, and go to state 24
-    '!'     shift, and go to state 25
-    '+'     shift, and go to state 26
-    '-'     shift, and go to state 27
-    '('     shift, and go to state 28
+    ','  shift, and go to state 55
 
-    UnaryExp    go to state 58
-    PrimaryExp  go to state 33
-    UnaryOp     go to state 34
+    $default  reduce using rule 23 (STMT_LDR)
 
 
 State 48
 
-   36 MulExp: MulExp '%' . UnaryExp
+   17 STMT_ADD: REGS ',' REGS ',' . IMME
+   18         | REGS ',' REGS ',' . REGS
 
-    NUMBER  shift, and go to state 24
-    '!'     shift, and go to state 25
-    '+'     shift, and go to state 26
-    '-'     shift, and go to state 27
-    '('     shift, and go to state 28
+    FP   shift, and go to state 17
+    SP   shift, and go to state 18
+    LR   shift, and go to state 19
+    IP   shift, and go to state 20
+    REG  shift, and go to state 21
+    '#'  shift, and go to state 41
 
-    UnaryExp    go to state 59
-    PrimaryExp  go to state 33
-    UnaryOp     go to state 34
+    REGS         go to state 56
+    SPECIAL_REG  go to state 24
+    IMME         go to state 57
 
 
 State 49
 
-   38 UnaryExp: UnaryOp UnaryExp .
+   37 UnaryExp: NUMBER .
 
-    $default  reduce using rule 38 (UnaryExp)
+    $default  reduce using rule 37 (UnaryExp)
 
 
 State 50
 
-   15 OP: SYB ',' OP .
+   38 UnaryExp: '-' . NUMBER
 
-    $default  reduce using rule 15 (OP)
+    NUMBER  shift, and go to state 58
 
 
 State 51
 
-   13 OP: ADDR ',' OP .
+   36 IMME: '#' UnaryExp .
 
-    $default  reduce using rule 13 (OP)
+    $default  reduce using rule 36 (IMME)
 
 
 State 52
 
-   14 OP: IMME ',' OP .
+   28 ADDR: '[' REGS . ']'
+   29     | '[' REGS . ',' IMME ']'
 
-    $default  reduce using rule 14 (OP)
+    ','  shift, and go to state 59
+    ']'  shift, and go to state 60
 
 
 State 53
 
-   27 ADDR: '[' OP ']' '!' .
+   22 STMT_STR: REGS ',' ADDRS ',' . IMME
 
-    $default  reduce using rule 27 (ADDR)
+    '#'  shift, and go to state 41
+
+    IMME  go to state 61
 
 
 State 54
 
-   39 PrimaryExp: '(' Exp ')' .
+   27 ADDRS: ADDR '!' .
 
-    $default  reduce using rule 39 (PrimaryExp)
+    $default  reduce using rule 27 (ADDRS)
 
 
 State 55
 
-   31 AddExp: AddExp '+' MulExp .
-   34 MulExp: MulExp . '*' UnaryExp
-   35       | MulExp . '/' UnaryExp
-   36       | MulExp . '%' UnaryExp
+   24 STMT_LDR: REGS ',' ADDRS ',' . IMME
 
-    '*'  shift, and go to state 46
-    '/'  shift, and go to state 47
-    '%'  shift, and go to state 48
+    '#'  shift, and go to state 41
 
-    $default  reduce using rule 31 (AddExp)
+    IMME  go to state 62
 
 
 State 56
 
-   32 AddExp: AddExp '-' MulExp .
-   34 MulExp: MulExp . '*' UnaryExp
-   35       | MulExp . '/' UnaryExp
-   36       | MulExp . '%' UnaryExp
+   18 STMT_ADD: REGS ',' REGS ',' REGS .
 
-    '*'  shift, and go to state 46
-    '/'  shift, and go to state 47
-    '%'  shift, and go to state 48
-
-    $default  reduce using rule 32 (AddExp)
+    $default  reduce using rule 18 (STMT_ADD)
 
 
 State 57
 
-   34 MulExp: MulExp '*' UnaryExp .
+   17 STMT_ADD: REGS ',' REGS ',' IMME .
 
-    $default  reduce using rule 34 (MulExp)
+    $default  reduce using rule 17 (STMT_ADD)
 
 
 State 58
 
-   35 MulExp: MulExp '/' UnaryExp .
+   38 UnaryExp: '-' NUMBER .
 
-    $default  reduce using rule 35 (MulExp)
+    $default  reduce using rule 38 (UnaryExp)
 
 
 State 59
 
-   36 MulExp: MulExp '%' UnaryExp .
+   29 ADDR: '[' REGS ',' . IMME ']'
 
-    $default  reduce using rule 36 (MulExp)
+    '#'  shift, and go to state 41
+
+    IMME  go to state 63
+
+
+State 60
+
+   28 ADDR: '[' REGS ']' .
+
+    $default  reduce using rule 28 (ADDR)
+
+
+State 61
+
+   22 STMT_STR: REGS ',' ADDRS ',' IMME .
+
+    $default  reduce using rule 22 (STMT_STR)
+
+
+State 62
+
+   24 STMT_LDR: REGS ',' ADDRS ',' IMME .
+
+    $default  reduce using rule 24 (STMT_LDR)
+
+
+State 63
+
+   29 ADDR: '[' REGS ',' IMME . ']'
+
+    ']'  shift, and go to state 64
+
+
+State 64
+
+   29 ADDR: '[' REGS ',' IMME ']' .
+
+    $default  reduce using rule 29 (ADDR)

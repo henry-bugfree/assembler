@@ -11,7 +11,8 @@ extern int yyparse(void);
 int main(int argc, char* argv[])
 {
     FILE* input;
-    input = freopen("./arm_testcase/00_main.s","r",stdin);
+    input = freopen("./.s_testcase/00_main.s","r",stdin);
     yyparse();
+
     return 0;
 }

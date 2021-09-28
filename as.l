@@ -4,7 +4,7 @@
  */
 
 %{
-#include "ast.h"
+#include "list.h"
 #include "as.tab.h"
 #include <math.h>
 #include <string.h>
@@ -16,7 +16,7 @@ void count();
 
 SINGLE_COMMENT      ("@"[^\n]*)
 LABEL               ([._a-zA-Z][_a-zA-Z0-9]*":")
-IDENTIFIER          ([_a-zA-Z][_a-zA-Z0-9]*)
+REG                 ([r][0-9]*)
 PSEUDO              ([.][_a-zA-Z][_a-zA-Z0-9]*[^\n]*)
 NUMBER              ("0"|[1-9][0-9]*)
 STRING              (\042[^\042\n]*\042)
@@ -24,13 +24,15 @@ UNTERM_STRING       (\042[^\042\n]*)
 
 %%
 
-"str"               { count(); return(STR);}
 "add"               { count(); return(ADD);}
 "mov"               { count(); return(MOV);}
+"str"               { count(); return(STR);}
 "ldr"               { count(); return(LDR);}
 "bx"                { count(); return(BX);}
 "fp"                { count(); return(FP);}
 "sp"                { count(); return(SP);}
+"lr"                { count(); return(LR);}
+"ip"                { count(); return(IP);}
 ","			{ count(); return(','); }
 "#"			{ count(); return('#'); }
 ":"			{ count(); return(':'); }
@@ -57,7 +59,7 @@ UNTERM_STRING       (\042[^\042\n]*)
 {SINGLE_COMMENT}    { /* skip for single line comment */    }
 {NUMBER}            { count(); yylval.v_int = atoi(yytext); return NUMBER;        }
 {STRING}            { count(); return STRING_LITERAL;          }
-{IDENTIFIER}        { count(); yylval.v_string = save_id(yytext); return IDENTIFIER;      }
+{REG}               { count(); yylval.v_string = save_id(yytext); return REG;      }
 {LABEL}             { count(); yylval.v_string = save_id(yytext); return LABEL;      }
 {PSEUDO}            { count(); yylval.v_string = save_id(yytext); return PSEUDO;      }
 <<EOF>>             { return 0;                 }

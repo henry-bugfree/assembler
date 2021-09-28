@@ -1,4 +1,4 @@
-/* A Bison parser, made by GNU Bison 3.5.1.  */
+/* A Bison parser, made by GNU Bison 3.7.1.  */
 
 /* Bison interface for Yacc-like parsers in C
 
@@ -31,8 +31,9 @@
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
-/* Undocumented macros, especially those whose name start with YY_,
-   are private implementation details.  Do not rely on them.  */
+/* DO NOT RELY ON FEATURES THAT ARE NOT DOCUMENTED in the manual,
+   especially those whose name start with YY_ or yy_.  They are
+   private implementation details that can be changed or removed.  */
 
 #ifndef YY_YY_AS_TAB_H_INCLUDED
 # define YY_YY_AS_TAB_H_INCLUDED
@@ -44,37 +45,44 @@
 extern int yydebug;
 #endif
 
-/* Token type.  */
+/* Token kinds.  */
 #ifndef YYTOKENTYPE
 # define YYTOKENTYPE
   enum yytokentype
   {
-    STR = 258,
-    ADD = 259,
-    MOV = 260,
-    LDR = 261,
-    BX = 262,
-    FP = 263,
-    SP = 264,
-    STRING_LITERAL = 265,
-    NUMBER = 266,
-    IDENTIFIER = 267,
-    PSEUDO = 268,
-    LABEL = 269
+    YYEMPTY = -2,
+    YYEOF = 0,                     /* "end of file"  */
+    YYerror = 256,                 /* error  */
+    YYUNDEF = 257,                 /* "invalid token"  */
+    FP = 258,                      /* FP  */
+    SP = 259,                      /* SP  */
+    LR = 260,                      /* LR  */
+    IP = 261,                      /* IP  */
+    STRING_LITERAL = 262,          /* STRING_LITERAL  */
+    ADD = 263,                     /* ADD  */
+    MOV = 264,                     /* MOV  */
+    STR = 265,                     /* STR  */
+    LDR = 266,                     /* LDR  */
+    BX = 267,                      /* BX  */
+    NUMBER = 268,                  /* NUMBER  */
+    REG = 269,                     /* REG  */
+    PSEUDO = 270,                  /* PSEUDO  */
+    LABEL = 271                    /* LABEL  */
   };
+  typedef enum yytokentype yytoken_kind_t;
 #endif
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 17 "as.y"
+#line 20 "as.y"
 
-	int	v_int;
+	int	    v_int;
 	char*	v_string;
-	ast*	p_ast;
+	list_node*	p_list;
 
-#line 78 "as.tab.h"
+#line 86 "as.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

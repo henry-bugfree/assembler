@@ -5,12 +5,12 @@
  */
 
 #include <stdio.h>
-
+#include <assert.h>
 int main()
 {
-    int a=1;
-    int b=2;
-    int c;
-    c=a+b;
+    assert(0);
     return 0;
 }
+
+//逻辑 VS 算数
+//LDM VS LDMIA
