@@ -15,20 +15,40 @@ void count();
 %}
 
 SINGLE_COMMENT      ("@"[^\n]*)
-LABEL               ([._a-zA-Z][_a-zA-Z0-9]*":")
 REG                 ([r][0-9]*)
-PSEUDO              ([.][_a-zA-Z][_a-zA-Z0-9]*[^\n]*)
+LABEL               ([._%a-zA-Z][-_a-zA-Z0-9]*)
 NUMBER              ("0"|[1-9][0-9]*)
 STRING              (\042[^\042\n]*\042)
 UNTERM_STRING       (\042[^\042\n]*)
 
 %%
-
+".cpu"              { count(); return(PSEUDO_CPU);}
+".eabi_attribute"   { count(); return(PSEUDO_EABI_ATTR);}
+".file"             { count(); return(PSEUDO_FILE);}
+".text"             { count(); return(PSEUDO_TEXT);}
+".align"           { count(); return(PSEUDO_ALIGN);}
+".global"         { count(); return(PSEUDO_GLOBAL);}
+".arch"             { count(); return(PSEUDO_ARCH);}
+".syntax"         { count(); return(PSEUDO_SYNTAX);}
+".arm"               { count(); return(PSEUDO_ARM);}
+".fpu"               { count(); return(PSEUDO_FPU);}
+".type"             { count(); return(PSEUDO_TYPE);}
+".size"             { count(); return(PSEUDO_SIZE);}
+".ident"           { count(); return(PSEUDO_IDENT);}
 "add"               { count(); return(ADD);}
+"and"               { count(); return(AND);}
+"asr"               { count(); return(ASR);}
+"b"       { count(); return(B);}
+"beq"     { count(); return(BEQ);}
+"bge"     { count(); return(BGE);}
+"bgt"     { count(); return(BGT);}
+"ble"     { count(); return(BLE);}
+"blt"     { count(); return(BLT);}
+"bne"     { count(); return(BNE);}
+"bx"                { count(); return(BX);}
 "mov"               { count(); return(MOV);}
 "str"               { count(); return(STR);}
 "ldr"               { count(); return(LDR);}
-"bx"                { count(); return(BX);}
 "fp"                { count(); return(FP);}
 "sp"                { count(); return(SP);}
 "lr"                { count(); return(LR);}
@@ -58,10 +78,9 @@ UNTERM_STRING       (\042[^\042\n]*)
 [\n]                { count(); cur_line_num++;                       }
 {SINGLE_COMMENT}    { /* skip for single line comment */    }
 {NUMBER}            { count(); yylval.v_int = atoi(yytext); return NUMBER;        }
-{STRING}            { count(); return STRING_LITERAL;          }
+{STRING}            { count(); yylval.v_string = save_id(yytext); return STRING;          }
 {REG}               { count(); yylval.v_string = save_id(yytext); return REG;      }
 {LABEL}             { count(); yylval.v_string = save_id(yytext); return LABEL;      }
-{PSEUDO}            { count(); yylval.v_string = save_id(yytext); return PSEUDO;      }
 <<EOF>>             { return 0;                 }
 {UNTERM_STRING}     { lex_error("Unterminated string constant", cur_line_num);  }
 .                   { lex_error("Unrecognized character", cur_line_num);        }
@@ -69,11 +88,15 @@ UNTERM_STRING       (\042[^\042\n]*)
 %%
 char* save_id(const char* source)
 {
-    char* des = (char*)malloc(sizeof(source));
-    for(int i=0;i<sizeof(source);i++)
+    int len=0;
+    while(source[len]!='\0')
+        len++;
+    char* des = (char*)malloc(len+1);
+    for(int i=0;i<len;i++)
     {
         des[i] = source[i];
     }
+    des[len]='\0';
     return des;
 }
 

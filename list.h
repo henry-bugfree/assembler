@@ -14,5 +14,6 @@ struct _list_node
     list_node* next;
     list_node* child;
 };
-
+list_node* new_node();
+int show_list(list_node* root, int nest);
 #endif
