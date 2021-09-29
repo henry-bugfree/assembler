@@ -10,4 +10,4 @@ as: lex.yy.c as.tab.c as.tab.h
 	gcc -o as main.c lex.yy.c list.c as.tab.c -lm
 	
 clean:
-	rm as.tab.c lex.yy.c as.tab.h as.output as
+	del as.tab.c lex.yy.c as.tab.h as.output as.exe
