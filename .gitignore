@@ -1,5 +1,8 @@
 as
 as.exe
+as.tab.c
+lex.yy.c
+as.tab.h
 as.output
 /flex_bison/
 /lab2/
