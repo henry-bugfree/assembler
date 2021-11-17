@@ -264,10 +264,8 @@ int process_oprand2(Elf32_Word* target,instruction_32* ptr_ins)
         }
         if(op2.type==imm)
         {
-            Elf32_Word temp=0x00000f00;
-            temp &= op2.imm;
+            //max imm=256??(0x xxxxxxxC01)
             *target |= (op2.imm<<24);
-            *target |= temp;
         }
     }
     return 0;

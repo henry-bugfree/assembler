@@ -31,7 +31,7 @@ int ins_num=0;
 %token <v_string> REG LABEL STRING
 %type  <p_list> Start TEXT STMTS STMT REGS SPECIAL_REG PSEUDOS PSEUDO IMME
 %type  <p_list> UnaryExp
-%type  <p_list> STMT_ADD STMT_AND STMT_ASR STMT_MOV STMT_STR STMT_LDR
+%type  <p_list> STMT_ADD STMT_AND STMT_MOV STMT_STR STMT_LDR
 %type  <p_list> STMT_B STMT_BEQ STMT_BGE STMT_BGT STMT_BLE STMT_BLT STMT_BNE STMT_BX
 
 %start Start
@@ -117,7 +117,6 @@ STMTS
 STMT
     : ADD STMT_ADD          {list_node* var=new_node();var->opcd=OPCD_ADD;var->s="ADD";var->ins_32=$2;$$=var;}
     | AND STMT_AND          {list_node* var=new_node();var->opcd=OPCD_AND;var->s="AND";var->ins_32=$2;$$=var;}
-    | ASR STMT_ASR          {list_node* var=new_node();var->opcd=OPCD_ASR;var->s="ASR";var->ins_32=$2;$$=var;}
     | MOV STMT_MOV          {list_node* var=new_node();var->opcd=OPCD_MOV;var->s="MOV";var->ins_32=$2;$$=var;}
     | STR STMT_STR          {list_node* var=new_node();var->opcd=OPCD_STR;var->s="STR";var->ins_32=$2;$$=var;}
     | LDR STMT_LDR          {list_node* var=new_node();var->opcd=OPCD_LDR;var->s="LDR";var->ins_32=$2;$$=var;}
@@ -133,34 +132,14 @@ STMT
 
 STMT_ADD
     : REGS ',' REGS ',' IMME
-       {instruction_32* ins=malloc(sizeof(instruction_32));
-       memset(ins,0,sizeof(ins));$$=ins;
-       ins->cond=COND_NOP;ins->opcd=OPCD_ADD;ins->rn=$3;ins->rd=$1;
-       ins->op2.type=imm;ins->op2.imm=$5;
-       if(ins->op2.imm<0){ins->negative=1;ins->op2.imm=-ins->op2.imm;}}
+        {$$=create_ins(COND_NOP,OPCD_ADD,$3,$1,imm,NULL,$5,0);}
     | REGS ',' REGS ',' REGS
-       {instruction_32* ins=malloc(sizeof(instruction_32));
-       memset(ins,0,sizeof(ins));$$=ins;
-       ins->cond=COND_NOP;ins->opcd=OPCD_ADD;ins->rn=$3;ins->rd=$1;
-       ins->op2.type=reg;ins->op2.reg=$5;}
+        {$$=create_ins(COND_NOP,OPCD_ADD,$3,$1,reg,$5,0,0);}
     ;
 
 STMT_AND
     : REGS ',' REGS ',' IMME
-       {instruction_32* ins=malloc(sizeof(instruction_32));
-       memset(ins,0,sizeof(ins));$$=ins;
-       ins->cond=COND_NOP;ins->opcd=OPCD_AND;ins->rn=$3;ins->rd=$1;
-       ins->op2.type=imm;ins->op2.imm=$5;
-       if(ins->op2.imm<0){ins->negative=1;ins->op2.imm=-ins->op2.imm;}}
-    ;
-
-STMT_ASR
-    : REGS ',' REGS ',' IMME
-       {instruction_32* ins=malloc(sizeof(instruction_32));
-       memset(ins,0,sizeof(ins));$$=ins;
-       ins->cond=COND_NOP;ins->opcd=OPCD_ASR;ins->rn=$3;ins->rd=$1;
-       ins->op2.type=imm;ins->op2.imm=$5;
-       if(ins->op2.imm<0){ins->negative=1;ins->op2.imm=-ins->op2.imm;}}
+       {$$=create_ins(COND_NOP,OPCD_AND,$3,$1,imm,NULL,$5,0);}
     ;
 
 STMT_B
@@ -193,89 +172,40 @@ STMT_BNE
 
 STMT_BX
     : REGS
-        {instruction_32* ins=malloc(sizeof(instruction_32));
-        memset(ins,0,sizeof(ins));$$=ins;
-        ins->cond=COND_NOP;ins->opcd=OPCD_BX;ins->op2.type=reg;ins->op2.reg=$1;}
+        {$$=create_ins(COND_NOP,OPCD_BX,NULL,NULL,reg,$1,0,0);}
     ;
 
 STMT_MOV
     : REGS ',' REGS
-       {instruction_32* ins=malloc(sizeof(instruction_32));
-       memset(ins,0,sizeof(ins));$$=ins;
-       ins->cond=COND_NOP;ins->opcd=OPCD_MOV;ins->rd=$1;
-       ins->op2.type=reg;ins->op2.reg=$3;}
+       {$$=create_ins(COND_NOP,OPCD_MOV,NULL,$1,reg,$3,0,0);}
     | REGS ',' IMME
-       {instruction_32* ins=malloc(sizeof(instruction_32));
-       memset(ins,0,sizeof(ins));$$=ins;
-       ins->cond=COND_NOP;ins->opcd=OPCD_MOV;ins->rd=$1;
-       ins->op2.type=imm;ins->op2.imm=$3;
-       if(ins->op2.imm<0){ins->negative=1;ins->op2.imm=-ins->op2.imm;}}
+       {$$=create_ins(COND_NOP,OPCD_MOV,NULL,$1,imm,NULL,$3,0);}
     ;
 
 STMT_STR
     : REGS ',' '[' REGS ']' '!'
-       {instruction_32* ins=malloc(sizeof(instruction_32));
-       memset(ins,0,sizeof(ins));$$=ins;
-       ins->cond=COND_NOP;ins->opcd=OPCD_STR;ins->rd=$1;
-       ins->op2.type=reg;ins->op2.reg=$4;ins->extra=0;
-       if(ins->op2.imm<0){ins->negative=1;ins->op2.imm=-ins->op2.imm;}}
+        {$$=create_ins(COND_NOP,OPCD_STR,NULL,$1,reg,$4,0,0);}
     | REGS ',' '[' REGS ']'
-       {instruction_32* ins=malloc(sizeof(instruction_32));
-       memset(ins,0,sizeof(ins));$$=ins;
-       ins->cond=COND_NOP;ins->opcd=OPCD_STR;ins->rd=$1;
-       ins->op2.type=reg;ins->op2.reg=$4;ins->extra=1;
-       if(ins->op2.imm<0){ins->negative=1;ins->op2.imm=-ins->op2.imm;}}
+        {$$=create_ins(COND_NOP,OPCD_STR,NULL,$1,reg,$4,0,1);}
     | REGS ',' '[' REGS ',' IMME ']' '!'
-       {instruction_32* ins=malloc(sizeof(instruction_32));
-       memset(ins,0,sizeof(ins));$$=ins;
-       ins->cond=COND_NOP;ins->opcd=OPCD_STR;ins->rd=$1;ins->rn=$4;
-       ins->op2.type=imm;ins->op2.imm=$6;ins->extra=2;
-       if(ins->op2.imm<0){ins->negative=1;ins->op2.imm=-ins->op2.imm;}}
+       {$$=create_ins(COND_NOP,OPCD_STR,$4,$1,imm,NULL,$6,2);}
     | REGS ',' '[' REGS ',' IMME ']'
-       {instruction_32* ins=malloc(sizeof(instruction_32));
-       memset(ins,0,sizeof(ins));$$=ins;
-       ins->cond=COND_NOP;ins->opcd=OPCD_STR;ins->rd=$1;ins->rn=$4;
-       ins->op2.type=imm;ins->op2.imm=$6;ins->extra=3;
-       if(ins->op2.imm<0){ins->negative=1;ins->op2.imm=-ins->op2.imm;}}
+       {$$=create_ins(COND_NOP,OPCD_STR,$4,$1,imm,NULL,$6,3);}
     | REGS ',' '[' REGS ']' ',' IMME
-       {instruction_32* ins=malloc(sizeof(instruction_32));
-       memset(ins,0,sizeof(ins));$$=ins;
-       ins->cond=COND_NOP;ins->opcd=OPCD_STR;ins->rd=$1;ins->rn=$4;
-       ins->op2.type=imm;ins->op2.imm=$7;ins->extra=4;
-       if(ins->op2.imm<0){ins->negative=1;ins->op2.imm=-ins->op2.imm;}}
+       {$$=create_ins(COND_NOP,OPCD_STR,$4,$1,imm,NULL,$7,4);}
     ;
 
 STMT_LDR
     : REGS ',' '[' REGS ']' '!'
-       {instruction_32* ins=malloc(sizeof(instruction_32));
-       memset(ins,0,sizeof(ins));$$=ins;
-       ins->cond=COND_NOP;ins->opcd=OPCD_LDR;ins->rd=$1;
-       ins->op2.type=reg;ins->op2.reg=$4;ins->extra=0;
-       if(ins->op2.imm<0){ins->negative=1;ins->op2.imm=-ins->op2.imm;}}
+        {$$=create_ins(COND_NOP,OPCD_LDR,NULL,$1,reg,$4,0,0);}
     | REGS ',' '[' REGS ']'
-       {instruction_32* ins=malloc(sizeof(instruction_32));
-       memset(ins,0,sizeof(ins));$$=ins;
-       ins->cond=COND_NOP;ins->opcd=OPCD_LDR;ins->rd=$1;
-       ins->op2.type=reg;ins->op2.reg=$4;ins->extra=1;
-       if(ins->op2.imm<0){ins->negative=1;ins->op2.imm=-ins->op2.imm;}}
+        {$$=create_ins(COND_NOP,OPCD_LDR,NULL,$1,reg,$4,0,1);}
     | REGS ',' '[' REGS ',' IMME ']' '!'
-       {instruction_32* ins=malloc(sizeof(instruction_32));
-       memset(ins,0,sizeof(ins));$$=ins;
-       ins->cond=COND_NOP;ins->opcd=OPCD_LDR;ins->rd=$1;ins->rn=$4;
-       ins->op2.type=imm;ins->op2.imm=$6;ins->extra=2;
-       if(ins->op2.imm<0){ins->negative=1;ins->op2.imm=-ins->op2.imm;}}
+       {$$=create_ins(COND_NOP,OPCD_LDR,$4,$1,imm,NULL,$6,2);}
     | REGS ',' '[' REGS ',' IMME ']'
-       {instruction_32* ins=malloc(sizeof(instruction_32));
-       memset(ins,0,sizeof(ins));$$=ins;
-       ins->cond=COND_NOP;ins->opcd=OPCD_LDR;ins->rd=$1;ins->rn=$4;
-       ins->op2.type=imm;ins->op2.imm=$6;ins->extra=3;
-       if(ins->op2.imm<0){ins->negative=1;ins->op2.imm=-ins->op2.imm;}}
+       {$$=create_ins(COND_NOP,OPCD_LDR,$4,$1,imm,NULL,$6,3);}
     | REGS ',' '[' REGS ']' ',' IMME
-       {instruction_32* ins=malloc(sizeof(instruction_32));
-       memset(ins,0,sizeof(ins));$$=ins;
-       ins->cond=COND_NOP;ins->opcd=OPCD_LDR;ins->rd=$1;ins->rn=$4;
-       ins->op2.type=imm;ins->op2.imm=$7;ins->extra=4;
-       if(ins->op2.imm<0){ins->negative=1;ins->op2.imm=-ins->op2.imm;}}
+       {$$=create_ins(COND_NOP,OPCD_LDR,$4,$1,imm,NULL,$7,4);}
     ;
 
 REGS

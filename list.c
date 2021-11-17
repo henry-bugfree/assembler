@@ -44,3 +44,30 @@ int show_list(list_node* root, int nest)
     return 0;
 }
 
+//typedef struct {
+//    condition_enum cond;
+//    opcode_enum opcd;
+//    char* rn;
+//    char* rd;
+//    oprand2 op2;
+//    int extra;
+//    int negative;
+//}instruction_32;
+
+instruction_32* create_ins(condition_enum cond,opcode_enum opcd,
+               char* rn, char* rd,oprand2_enum op2_type, char* op2_reg,
+               int op2_imm,int extra)
+{
+    instruction_32* new_ins=malloc(sizeof(instruction_32));
+    memset(new_ins,0,sizeof(instruction_32));
+    new_ins->cond=cond;
+    new_ins->opcd=opcd;
+    new_ins->rn=rn;
+    new_ins->rd=rd;
+    new_ins->op2.type=op2_type;
+    new_ins->op2.reg=op2_reg;
+    new_ins->op2.imm=op2_imm;
+    if(new_ins->op2.imm<0){new_ins->negative=1;new_ins->op2.imm=-new_ins->op2.imm;}
+    new_ins->extra=extra;
+    return new_ins;
+}

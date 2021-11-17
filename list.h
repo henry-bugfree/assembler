@@ -66,4 +66,7 @@ struct _list_node{
 
 list_node* new_node();
 int show_list(list_node* root, int nest);
+instruction_32* create_ins(condition_enum cond,opcode_enum opcd,
+                           char* rn, char* rd,oprand2_enum op2_type, char* op2_reg,
+                           int op2_imm,int extra);
 #endif
