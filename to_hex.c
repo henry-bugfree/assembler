@@ -8,7 +8,9 @@
 #include "list.h"
 #include <string.h>
 
-extern int ins_num;
+extern Elf32_Word ins_num;
+extern Elf32_Word sym_num;
+Elf32_Word strtab_len=0;
 
 int to_hex(FILE *fp,list_node* root)
 {
@@ -17,28 +19,30 @@ int to_hex(FILE *fp,list_node* root)
     text(fp, root);
     data(fp);
     bss(fp);
-    symtab(fp);
-    strtab(fp);
+    symtab(fp,root);
+    strtab(fp,root);
+//    test_strtab(fp);
     shstrtab(fp);
-    section_header_table(fp);
+    section_header_table(fp,7);
+//    test_section_header_table(fp);
     return 0;
 }
 int elf_header(FILE *fp)
 {
     Elf32_Ehdr* header= malloc(sizeof (Elf32_Ehdr));
     memcpy(header->e_ident,"\177ELF\1\1\1\0\0\0\0\0\0\0\0\0",16);   /* Magic number and other info */
-    header->e_type=0x0001;   /* Object file type */
-    header->e_machine=0x0028;    /* Architecture */
-    header->e_version=0x00000001;    /* Object file version */
-    header->e_entry=0x00000000;  /* Entry point virtual address */
+    header->e_type=0x0001;          /* Object file type */
+    header->e_machine=0x0028;       /* Architecture */
+    header->e_version=0x00000001;   /* Object file version */
+    header->e_entry=0x00000000;     /* Entry point virtual address */
     header->e_phoff=0x00000000; 	/* Program header table file offset */
-    header->e_shoff=0x000000cf;		/* Section header table file offset */
+    header->e_shoff=0x000000bc;		/* Section header table file offset */
     header->e_flags=0x05000000;		/* Processor-specific flags */
     header->e_ehsize=0x0034;		/* ELF header size in bytes */
     header->e_phentsize=0x0000;		/* Program header table entry size */
-    header->e_phnum=0x0000;		/* Program header table entry count */
+    header->e_phnum=0x0000;		    /* Program header table entry count */
     header->e_shentsize=0x0028;		/* Section header table entry size */
-    header->e_shnum=0x0007;		/* Section header table entry count */
+    header->e_shnum=0x0007;		    /* Section header table entry count */
     header->e_shstrndx=0x0006;		/* Section header string table index */
 
     char* header_char=(char*)header;
@@ -289,49 +293,149 @@ int bss(FILE *fp)
 {
     return 0;
 }
-int symtab(FILE *fp)
+int symtab(FILE *fp,list_node* root)
 {
-    Elf32_Sym* sym_set=malloc(sizeof(Elf32_Sym)*4);
+    sym_num++;
+    Elf32_Sym* sym_set=malloc(sizeof(Elf32_Sym)*sym_num);
 
-    sym_set->st_name=0x00000000;		/* Symbol name (string tbl index) */
-    sym_set->st_value=0x00000000;		/* Symbol value */
-    sym_set->st_size=0x00000000;		/* Symbol size */
-    sym_set->st_info=0x00;		/* Symbol type and binding */
-    sym_set->st_other=0x00;		/* Symbol visibility */
-    sym_set->st_shndx=0x0000;		/* Section index */
+    symtab_list *my_symtab = new_symtab(0,0,0,0,0);
+    get_symtab(my_symtab, root);
+    symtab_list *cur=my_symtab;
 
-    (sym_set+1)->st_name=0x00000001;		/* Symbol name (string tbl index) */
-    (sym_set+1)->st_value=0x00000000;		/* Symbol value */
-    (sym_set+1)->st_size=0x00000000;		/* Symbol size */
-    (sym_set+1)->st_info=0x04;		/* Symbol type and binding */
-    (sym_set+1)->st_other=0x00;		/* Symbol visibility */
-    (sym_set+1)->st_shndx=0xfff1;		/* Section index */
+//    FILE* debug;
+//    debug = freopen("./debug.txt","w",stdin);
 
-    (sym_set+2)->st_name=0x0000000b;		/* Symbol name (string tbl index) */
-    (sym_set+2)->st_value=0x00000000;		/* Symbol value */
-    (sym_set+2)->st_size=0x00000000;		/* Symbol size */
-    (sym_set+2)->st_info=0x00;		/* Symbol type and binding */
-    (sym_set+2)->st_other=0x00;		/* Symbol visibility */
-    (sym_set+2)->st_shndx=0x0001;		/* Section index */
+    unsigned int pos=0;
+    (sym_set+pos)->st_name=0x00;		/* Symbol name (string tbl index) */
+    (sym_set+pos)->st_value=0x00;		/* Symbol value */
+    (sym_set+pos)->st_size=0x00;		/* Symbol size */
+    (sym_set+pos)->st_info=0x00;		/* Symbol type and binding */
+    (sym_set+pos)->st_other=0x00;		/* Symbol visibility */
+    (sym_set+pos)->st_shndx=0x00;		/* Section index */
+    pos++;
 
-    (sym_set+3)->st_name=0x0000000e;		/* Symbol name (string tbl index) */
-    (sym_set+3)->st_value=0x00000000;		/* Symbol value */
-    (sym_set+3)->st_size=0x0000001c;		/* Symbol size */
-    (sym_set+3)->st_info=0x12;		/* Symbol type and binding */
-    (sym_set+3)->st_other=0x00;		/* Symbol visibility */
-    (sym_set+3)->st_shndx=0x0001;		/* Section index */
+    while(cur->next!=NULL){
+        cur=cur->next;
 
+        (sym_set+pos)->st_name=cur->st_name;		/* Symbol name (string tbl index) */
+        (sym_set+pos)->st_value=cur->st_value;		/* Symbol value */
+        (sym_set+pos)->st_size=cur->st_size;		/* Symbol size */
+        (sym_set+pos)->st_info=cur->st_info;		/* Symbol type and binding */
+        (sym_set+pos)->st_other=0x00;		/* Symbol visibility */
+        (sym_set+pos)->st_shndx=cur->st_shndx;		/* Section index */
+//        fprintf(debug,"%d ",pos);
+
+        pos++;
+    }
+
+//    fclose(debug);
     char* sym_set_char=(char*)sym_set;
-    for(int i=0;i<sizeof(Elf32_Sym)*4;i++)
+    for(int i=0;i<sizeof(Elf32_Sym)*sym_num;i++)
         fprintf(fp,"%c",sym_set_char[i]);
+
     return 0;
 }
-int strtab(FILE *fp)
+int get_symtab(symtab_list* my_symtab,list_node* root)
 {
-    char* str_set=malloc(sizeof(char)*19);
-    memcpy(str_set,"\00000_main.c\000$a\000main\000",19);
-    for(int i=0;i<sizeof(char)*19;i++)
+//    FILE* debug;
+//    debug = freopen("./debug.txt","w",stdin);
+    symtab_list* cur_symtab=my_symtab;
+    list_node* cur0=root;
+    Elf32_Word pos=1;
+    while(cur0!=NULL)
+    {
+        list_node* cur1=cur0->child;
+        while(cur1!=NULL)
+        {
+            if(strcmp(cur1->s,"PSEUDO")==0)
+            {
+                list_node* cur2=cur1->child;
+                switch(cur2->pseu)
+                {
+                    case PS_FILE:
+                        cur_symtab->next= new_symtab(pos,0,0,0x4,0xfff1);
+                        pos=pos+strlen(cur2->pseu_extend->s)+1;
+                        cur_symtab=cur_symtab->next;
+                        break;
+                    case PS_GLOBAL:
+                        cur_symtab->next=new_symtab(pos,0,0x1c,0x12,0x1);
+                        pos=pos+strlen(cur2->pseu_extend->s)+1;
+                        cur_symtab=cur_symtab->next;
+                        break;
+                    default:
+                        break;
+                }
+            }
+            cur1=cur1->next;
+        }
+        cur0=cur0->next;
+    }
+    return 0;
+}
+int strtab(FILE *fp,list_node* root)
+{
+    char* str_set;
+    unsigned int len=1;
+
+    strtab_list *my_strtab = new_strtab(NULL);
+    get_strtab(my_strtab, root);
+
+//    FILE* debug;
+//    debug = freopen("./debug.txt","w",stdin);
+
+    strtab_list *cur=my_strtab;
+    while(cur->next!=NULL){
+        cur=cur->next;
+        len += strlen(cur->s);
+        len++;
+    }
+//    fprintf(debug,"%d",len);
+//    fclose(debug);
+    strtab_len=len;
+
+    str_set=malloc(sizeof(char)*len);
+    memcpy(str_set,"\000",1);
+    cur=my_strtab;
+    unsigned int pos=1;
+    while(cur->next!=NULL){
+        cur=cur->next;
+        strcpy(str_set+pos,cur->s);
+        pos += strlen(cur->s);
+        memcpy(str_set+pos+1,"\000",1);
+        pos++;
+    }
+
+    for(int i=0;i<len;i++)
         fprintf(fp,"%c",str_set[i]);
+    return 0;
+}
+int get_strtab(strtab_list* my_strtab,list_node* root)
+{
+    strtab_list* cur_strtab=my_strtab;
+    list_node* cur0=root;
+    while(cur0!=NULL)
+    {
+        list_node* cur1=cur0->child;
+        while(cur1!=NULL)
+        {
+            if(strcmp(cur1->s,"PSEUDO")==0)
+            {
+                list_node* cur2=cur1->child;
+                switch(cur2->pseu)
+                {
+                    case PS_FILE:
+                    case PS_GLOBAL:
+                        cur_strtab->next=new_strtab(cur2->pseu_extend->s);
+                        cur_strtab=cur_strtab->next;
+                        break;
+                    default:
+                        break;
+                }
+            }
+            cur1=cur1->next;
+        }
+        cur0=cur0->next;
+    }
     return 0;
 }
 int shstrtab(FILE *fp)
@@ -342,89 +446,107 @@ int shstrtab(FILE *fp)
         fprintf(fp,"%c",shstr_set[i]);
     return 0;
 }
-int section_header_table(FILE *fp)
+int section_header_table(FILE *fp,int sect_num)
 {
-    Elf32_Shdr* shdr_set=malloc(sizeof(Elf32_Shdr)*7);
+    Elf32_Shdr* shdr_set=malloc(sizeof(Elf32_Shdr)*sect_num);
+    Elf32_Off hd_off=0x00000034;
+    Elf32_Word ins_size=ins_num*4;
+    Elf32_Word sym_size=sym_num*sizeof(Elf32_Sym);
 
-    shdr_set->sh_name=0x00000000;		/* Section name (string tbl index) */
-    shdr_set->sh_type=0x00000000;		/* Section type */
-    shdr_set->sh_flags=0x00000000;		/* Section flags */
-    shdr_set->sh_addr=0x00000000;		/* Section virtual addr at execution */
-    shdr_set->sh_offset=0x00000000;		/* Section file offset */
-    shdr_set->sh_size=0x00000000;		/* Section size in bytes */
-    shdr_set->sh_link=0x00000000;		/* Link to another section */
-    shdr_set->sh_info=0x00000000;		/* Additional section information */
-    shdr_set->sh_addralign=0x00000000;	/* Section alignment */
-    shdr_set->sh_entsize=0x00000000;		/* Entry size if section holds table */
+    int pos=0;
+    //NULL
+    (shdr_set+pos)->sh_name=0x00000000;		/* Section name (string tbl index) */
+    (shdr_set+pos)->sh_type=0x00000000;		/* Section type */
+    (shdr_set+pos)->sh_flags=0x00000000;		/* Section flags */
+    (shdr_set+pos)->sh_addr=0x00000000;		/* Section virtual addr at execution */
+    (shdr_set+pos)->sh_offset=0x00000000;		/* Section file offset */
+    (shdr_set+pos)->sh_size=0x00000000;		/* Section size in bytes */
+    (shdr_set+pos)->sh_link=0x00000000;		/* Link to another section */
+    (shdr_set+pos)->sh_info=0x00000000;		/* Additional section information */
+    (shdr_set+pos)->sh_addralign=0x00000000;	/* Section alignment */
+    (shdr_set+pos)->sh_entsize=0x00000000;		/* Entry size if section holds table */
+    pos++;
 
-    (shdr_set+1)->sh_name=0x0000001b;		/* Section name (string tbl index) */
-    (shdr_set+1)->sh_type=0x00000001;		/* Section type */
-    (shdr_set+1)->sh_flags=0x00000006;		/* Section flags */
-    (shdr_set+1)->sh_addr=0x00000000;		/* Section virtual addr at execution */
-    (shdr_set+1)->sh_offset=0x00000034;		/* Section file offset */
-    (shdr_set+1)->sh_size=0x0000001c;		/* Section size in bytes */
-    (shdr_set+1)->sh_link=0x00000000;		/* Link to another section */
-    (shdr_set+1)->sh_info=0x00000000;		/* Additional section information */
-    (shdr_set+1)->sh_addralign=0x00000004;	/* Section alignment */
-    (shdr_set+1)->sh_entsize=0x00000000;		/* Entry size if section holds table */
+    //.text
+    (shdr_set+pos)->sh_name=0x0000001b;		/* Section name (string tbl index) */
+    (shdr_set+pos)->sh_type=0x00000001;		/* Section type */
+    (shdr_set+pos)->sh_flags=0x00000006;		/* Section flags */
+    (shdr_set+pos)->sh_addr=0x00000000;		/* Section virtual addr at execution */
+    (shdr_set+pos)->sh_offset=hd_off;		/* Section file offset */
+    (shdr_set+pos)->sh_size=ins_size;		/* Section size in bytes */
+    (shdr_set+pos)->sh_link=0x00000000;		/* Link to another section */
+    (shdr_set+pos)->sh_info=0x00000000;		/* Additional section information */
+    (shdr_set+pos)->sh_addralign=0x00000004;	/* Section alignment */
+    (shdr_set+pos)->sh_entsize=0x00000000;		/* Entry size if section holds table */
+    pos++;
 
-    (shdr_set+2)->sh_name=0x00000021;		/* Section name (string tbl index) */
-    (shdr_set+2)->sh_type=0x00000001;		/* Section type */
-    (shdr_set+2)->sh_flags=0x00000003;		/* Section flags */
-    (shdr_set+2)->sh_addr=0x00000000;		/* Section virtual addr at execution */
-    (shdr_set+2)->sh_offset=0x00000050;		/* Section file offset */
-    (shdr_set+2)->sh_size=0x00000000;		/* Section size in bytes */
-    (shdr_set+2)->sh_link=0x00000000;		/* Link to another section */
-    (shdr_set+2)->sh_info=0x00000000;		/* Additional section information */
-    (shdr_set+2)->sh_addralign=0x00000001;	/* Section alignment */
-    (shdr_set+2)->sh_entsize=0x00000000;		/* Entry size if section holds table */
+    //.data
+    (shdr_set+pos)->sh_name=0x00000021;		/* Section name (string tbl index) */
+    (shdr_set+pos)->sh_type=0x00000001;		/* Section type */
+    (shdr_set+pos)->sh_flags=0x00000003;		/* Section flags */
+    (shdr_set+pos)->sh_addr=0x00000000;		/* Section virtual addr at execution */
+    (shdr_set+pos)->sh_offset=(shdr_set+pos-1)->sh_offset+(shdr_set+pos-1)->sh_size;		/* Section file offset */
+    (shdr_set+pos)->sh_size=0x00000000;		/* Section size in bytes */
+    (shdr_set+pos)->sh_link=0x00000000;		/* Link to another section */
+    (shdr_set+pos)->sh_info=0x00000000;		/* Additional section information */
+    (shdr_set+pos)->sh_addralign=0x00000001;	/* Section alignment */
+    (shdr_set+pos)->sh_entsize=0x00000000;		/* Entry size if section holds table */
+    pos++;
 
-    (shdr_set+3)->sh_name=0x00000027;		/* Section name (string tbl index) */
-    (shdr_set+3)->sh_type=0x00000008;		/* Section type */
-    (shdr_set+3)->sh_flags=0x00000003;		/* Section flags */
-    (shdr_set+3)->sh_addr=0x00000000;		/* Section virtual addr at execution */
-    (shdr_set+3)->sh_offset=0x00000050;		/* Section file offset */
-    (shdr_set+3)->sh_size=0x00000000;		/* Section size in bytes */
-    (shdr_set+3)->sh_link=0x00000000;		/* Link to another section */
-    (shdr_set+3)->sh_info=0x00000000;		/* Additional section information */
-    (shdr_set+3)->sh_addralign=0x00000001;	/* Section alignment */
-    (shdr_set+3)->sh_entsize=0x00000000;		/* Entry size if section holds table */
+    //.bss
+    (shdr_set+pos)->sh_name=0x00000027;		/* Section name (string tbl index) */
+    (shdr_set+pos)->sh_type=0x00000008;		/* Section type */
+    (shdr_set+pos)->sh_flags=0x00000003;		/* Section flags */
+    (shdr_set+pos)->sh_addr=0x00000000;		/* Section virtual addr at execution */
+    (shdr_set+pos)->sh_offset=(shdr_set+pos-1)->sh_offset+(shdr_set+pos-1)->sh_size;		/* Section file offset */
+    (shdr_set+pos)->sh_size=0x00000000;		/* Section size in bytes */
+    (shdr_set+pos)->sh_link=0x00000000;		/* Link to another section */
+    (shdr_set+pos)->sh_info=0x00000000;		/* Additional section information */
+    (shdr_set+pos)->sh_addralign=0x00000001;	/* Section alignment */
+    (shdr_set+pos)->sh_entsize=0x00000000;		/* Entry size if section holds table */
+    pos++;
 
-    (shdr_set+4)->sh_name=0x00000001;		/* Section name (string tbl index) */
-    (shdr_set+4)->sh_type=0x00000002;		/* Section type */
-    (shdr_set+4)->sh_flags=0x00000000;		/* Section flags */
-    (shdr_set+4)->sh_addr=0x00000000;		/* Section virtual addr at execution */
-    (shdr_set+4)->sh_offset=0x00000050;		/* Section file offset */
-    (shdr_set+4)->sh_size=0x00000040;		/* Section size in bytes */
-    (shdr_set+4)->sh_link=0x00000005;		/* Link to another section */
-    (shdr_set+4)->sh_info=0x00000003;		/* Additional section information */
-    (shdr_set+4)->sh_addralign=0x00000004;	/* Section alignment */
-    (shdr_set+4)->sh_entsize=0x00000010;		/* Entry size if section holds table */
+    //.symtab
+    (shdr_set+pos)->sh_name=0x00000001;		/* Section name (string tbl index) */
+    (shdr_set+pos)->sh_type=0x00000002;		/* Section type */
+    (shdr_set+pos)->sh_flags=0x00000000;		/* Section flags */
+    (shdr_set+pos)->sh_addr=0x00000000;		/* Section virtual addr at execution */
+    (shdr_set+pos)->sh_offset=(shdr_set+pos-1)->sh_offset+(shdr_set+pos-1)->sh_size;		/* Section file offset */
+    (shdr_set+pos)->sh_size=sym_size;		/* Section size in bytes */
+    (shdr_set+pos)->sh_link=0x00000005;		/* Link to another section */
+    (shdr_set+pos)->sh_info=0x00000003;		/* Additional section information */
+    (shdr_set+pos)->sh_addralign=0x00000004;	/* Section alignment */
+    (shdr_set+pos)->sh_entsize=0x00000010;		/* Entry size if section holds table */
+    pos++;
 
-    (shdr_set+5)->sh_name=0x00000009;		/* Section name (string tbl index) */
-    (shdr_set+5)->sh_type=0x00000003;		/* Section type */
-    (shdr_set+5)->sh_flags=0x00000000;		/* Section flags */
-    (shdr_set+5)->sh_addr=0x00000000;		/* Section virtual addr at execution */
-    (shdr_set+5)->sh_offset=0x00000090;		/* Section file offset */
-    (shdr_set+5)->sh_size=0x00000013;		/* Section size in bytes */
-    (shdr_set+5)->sh_link=0x00000000;		/* Link to another section */
-    (shdr_set+5)->sh_info=0x00000000;		/* Additional section information */
-    (shdr_set+5)->sh_addralign=0x00000001;	/* Section alignment */
-    (shdr_set+5)->sh_entsize=0x00000000;		/* Entry size if section holds table */
+    //.strtab
+    (shdr_set+pos)->sh_name=0x00000009;		/* Section name (string tbl index) */
+    (shdr_set+pos)->sh_type=0x00000003;		/* Section type */
+    (shdr_set+pos)->sh_flags=0x00000000;		/* Section flags */
+    (shdr_set+pos)->sh_addr=0x00000000;		/* Section virtual addr at execution */
+    (shdr_set+pos)->sh_offset=(shdr_set+pos-1)->sh_offset+(shdr_set+pos-1)->sh_size;		/* Section file offset */
+    (shdr_set+pos)->sh_size=strtab_len;		/* Section size in bytes */
+    (shdr_set+pos)->sh_link=0x00000000;		/* Link to another section */
+    (shdr_set+pos)->sh_info=0x00000000;		/* Additional section information */
+    (shdr_set+pos)->sh_addralign=0x00000001;	/* Section alignment */
+    (shdr_set+pos)->sh_entsize=0x00000000;		/* Entry size if section holds table */
+    pos++;
 
-    (shdr_set+6)->sh_name=0x00000011;		/* Section name (string tbl index) */
-    (shdr_set+6)->sh_type=0x00000003;		/* Section type */
-    (shdr_set+6)->sh_flags=0x00000000;		/* Section flags */
-    (shdr_set+6)->sh_addr=0x00000000;		/* Section virtual addr at execution */
-    (shdr_set+6)->sh_offset=0x000000a3;		/* Section file offset */
-    (shdr_set+6)->sh_size=0x00000055;		/* Section size in bytes */
-    (shdr_set+6)->sh_link=0x00000000;		/* Link to another section */
-    (shdr_set+6)->sh_info=0x00000000;		/* Additional section information */
-    (shdr_set+6)->sh_addralign=0x00000001;	/* Section alignment */
-    (shdr_set+6)->sh_entsize=0x00000000;		/* Entry size if section holds table */
+    //.shstrtab
+    (shdr_set+pos)->sh_name=0x00000011;		/* Section name (string tbl index) */
+    (shdr_set+pos)->sh_type=0x00000003;		/* Section type */
+    (shdr_set+pos)->sh_flags=0x00000000;		/* Section flags */
+    (shdr_set+pos)->sh_addr=0x00000000;		/* Section virtual addr at execution */
+    (shdr_set+pos)->sh_offset=(shdr_set+pos-1)->sh_offset+(shdr_set+pos-1)->sh_size;		/* Section file offset */
+    (shdr_set+pos)->sh_size=0x0000002c;		/* Section size in bytes */
+    (shdr_set+pos)->sh_link=0x00000000;		/* Link to another section */
+    (shdr_set+pos)->sh_info=0x00000000;		/* Additional section information */
+    (shdr_set+pos)->sh_addralign=0x00000001;	/* Section alignment */
+    (shdr_set+pos)->sh_entsize=0x00000000;		/* Entry size if section holds table */
+    pos++;
 
     char* shdr_set_char=(char*)shdr_set;
-    for(int i=0;i<sizeof(Elf32_Shdr)*7;i++)
+    for(int i=0;i<sizeof(Elf32_Shdr)*sect_num;i++)
         fprintf(fp,"%c",shdr_set_char[i]);
     return 0;
 }
@@ -618,7 +740,7 @@ int test_section_header_table(FILE *fp)
     (shdr_set+6)->sh_flags=0x00000000;		/* Section flags */
     (shdr_set+6)->sh_addr=0x00000000;		/* Section virtual addr at execution */
     (shdr_set+6)->sh_offset=0x000000a3;		/* Section file offset */
-    (shdr_set+6)->sh_size=0x00000055;		/* Section size in bytes */
+    (shdr_set+6)->sh_size=0x0000002c;		/* Section size in bytes */
     (shdr_set+6)->sh_link=0x00000000;		/* Link to another section */
     (shdr_set+6)->sh_info=0x00000000;		/* Additional section information */
     (shdr_set+6)->sh_addralign=0x00000001;	/* Section alignment */

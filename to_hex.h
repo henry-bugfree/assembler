@@ -20,10 +20,12 @@ int process_oprand2(Elf32_Word* target,instruction_32* ptr_ins);
 Elf32_Word process_reg(char* reg);
 int data(FILE *fp);
 int bss(FILE *fp);
-int symtab(FILE *fp);
-int strtab(FILE *fp);
+int symtab(FILE *fp,list_node* root);
+int get_symtab(symtab_list* my_symtab,list_node* root);
+int strtab(FILE *fp,list_node* root);
+int get_strtab(strtab_list* my_strtab,list_node* root);
 int shstrtab(FILE *fp);
-int section_header_table(FILE *fp);
+int section_header_table(FILE *fp,int sect_num);
 
 int test_to_hex(FILE *fp);
 int test_elf_header(FILE *fp);

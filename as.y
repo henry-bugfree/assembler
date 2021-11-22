@@ -6,20 +6,22 @@
 %{
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "list.h"
 #include "as.tab.h"
 #include "to_hex.h"
 int yylex(void);
 void yyerror(char *);
 list_node* list_root;
-int ins_num=0;
+Elf32_Word ins_num=0;
+Elf32_Word sym_num=0;
 %}
 
-%token PSEUDO_CPU PSEUDO_FILE PSEUDO_TEXT PSEUDO_ALIGN PSEUDO_GLOBAL PSEUDO_ARCH
+%token PSEUDO_CPU PSEUDO_FILE PSEUDO_TEXT PSEUDO_ALIGN PSEUDO_GLOBAL PSEUDO_ARCH PSEUDO_COMM PSEUDO_WORD
 %token PSEUDO_EABI_ATTR PSEUDO_SYNTAX PSEUDO_ARM PSEUDO_FPU PSEUDO_TYPE PSEUDO_SIZE PSEUDO_IDENT
 
 %token FP SP LR IP
-%token ADD AND ASR MOV STR LDR B BEQ BGE BGT BLE BLT BNE BX
+%token ADD SUB AND MOV STR LDR BX
 
 %union{
 	int	    v_int;
@@ -31,8 +33,8 @@ int ins_num=0;
 %token <v_string> REG LABEL STRING
 %type  <p_list> Start TEXT STMTS STMT REGS SPECIAL_REG PSEUDOS PSEUDO IMME
 %type  <p_list> UnaryExp
-%type  <p_list> STMT_ADD STMT_AND STMT_MOV STMT_STR STMT_LDR
-%type  <p_list> STMT_B STMT_BEQ STMT_BGE STMT_BGT STMT_BLE STMT_BLT STMT_BNE STMT_BX
+%type  <p_list> STMT_ADD STMT_SUB STMT_AND STMT_MOV STMT_STR STMT_LDR
+%type  <p_list> STMT_BX
 
 %start Start
 
@@ -44,8 +46,10 @@ Start
 
 TEXT
     : PSEUDOS             {list_node* var=new_node();var->child=$1;$$=var;}
-    | LABEL ':' STMTS         {list_node* var=new_node();var->s=$1;var->child=$3;$$=var;}
     | PSEUDOS TEXT        {list_node* var=new_node();var->child=$1;var->next=$2;$$=var;}
+    | LABEL ':' PSEUDOS         {list_node* var=new_node();var->s=$1;var->child=$3;$$=var;}
+    | LABEL ':' PSEUDOS TEXT    {list_node* var=new_node();var->s=$1;var->child=$3;var->next=$4;$$=var;}
+    | LABEL ':' STMTS         {list_node* var=new_node();var->s=$1;var->child=$3;$$=var;}
     | LABEL ':' STMTS TEXT    {list_node* var=new_node();var->s=$1;var->child=$3;var->next=$4;$$=var;}
     ;
 
@@ -56,57 +60,55 @@ PSEUDOS
 
 PSEUDO
     : PSEUDO_CPU LABEL
-       {list_node* oprand1=new_node(); list_node* oprand2=new_node();
-        oprand1->s="PSEUDO_CPU"; oprand2->s=$2;
-        $$=oprand1; oprand1->next=oprand2;}
+       {list_node* var=create_pseudo(PS_CPU,"PSEUDO_CPU",1,0,$2,0);
+       $$=var;}
     | PSEUDO_FILE STRING
-       {list_node* oprand1=new_node(); list_node* oprand2=new_node();
-        oprand1->s="PSEUDO_FILE"; oprand2->s=$2;
-        $$=oprand1; oprand1->next=oprand2;}
+       {list_node* var=create_pseudo(PS_FILE,"PSEUDO_FILE",1,0,$2,0);
+       $$=var;sym_num++;}
     | PSEUDO_TEXT
-       {list_node* oprand1=new_node();
-        oprand1->s="PSEUDO_TEXT";
-        $$=oprand1;}
+       {list_node* var=create_pseudo(PS_TEXT,"PSEUDO_TEXT",0,0,NULL,0);
+       $$=var;}
     | PSEUDO_ALIGN NUMBER
-       {list_node* oprand1=new_node(); list_node* oprand2=new_node();
-        oprand1->s="PSEUDO_ALIGN"; oprand2->i=$2;
-        $$=oprand1; oprand1->next=oprand2;}
+       {list_node* var=create_pseudo(PS_ALIGN,"PSEUDO_ALIGN",1,1,NULL,$2);
+       $$=var;}
     | PSEUDO_GLOBAL LABEL
-       {list_node* oprand1=new_node(); list_node* oprand2=new_node();
-        oprand1->s="PSEUDO_GLOBAL"; oprand2->s=$2;
-        $$=oprand1; oprand1->next=oprand2;}
+       {list_node* var=create_pseudo(PS_GLOBAL,"PSEUDO_GLOBAL",1,0,$2,0);
+       $$=var;sym_num++;}
     | PSEUDO_ARCH LABEL
-       {list_node* oprand1=new_node(); list_node* oprand2=new_node();
-        oprand1->s="PSEUDO_ARCH"; oprand2->s=$2;
-        $$=oprand1; oprand1->next=oprand2;}
+       {list_node* var=create_pseudo(PS_ARCH,"PSEUDO_ARCH",1,0,$2,0);
+       $$=var;}
     | PSEUDO_EABI_ATTR NUMBER ',' NUMBER
-       {list_node* oprand1=new_node(); list_node* oprand2=new_node(); list_node* oprand3=new_node();
-        oprand1->s="PSEUDO_EABI_ATTR"; oprand2->i=$2; oprand3->i=$4;
-        $$=oprand1; oprand1->next=oprand2; oprand2->next=oprand3; }
+       {list_node* var=create_pseudo(PS_EABI_ATTR,"PSEUDO_EABI_ATTR",1,1,NULL,$2);
+       pseudo_extend(var->pseu_extend,1,NULL,$4);
+       $$=var;}
     | PSEUDO_SYNTAX LABEL
-       {list_node* oprand1=new_node(); list_node* oprand2=new_node();
-        oprand1->s="PSEUDO_SYNTAX"; oprand2->s=$2;
-        $$=oprand1; oprand1->next=oprand2;}
+       {list_node* var=create_pseudo(PS_SYNTAX,"PSEUDO_SYNTAX",1,0,$2,0);
+       $$=var;}
     | PSEUDO_ARM
-       {list_node* oprand1=new_node();
-        oprand1->s="PSEUDO_ARM";
-        $$=oprand1;}
+       {list_node* var=create_pseudo(PS_ARM,"PSEUDO_ARM",0,0,NULL,0);
+       $$=var;}
     | PSEUDO_FPU LABEL
-       {list_node* oprand1=new_node(); list_node* oprand2=new_node();
-        oprand1->s="PSEUDO_FPU"; oprand2->s=$2;
-        $$=oprand1; oprand1->next=oprand2;}
+       {list_node* var=create_pseudo(PS_FPU,"PSEUDO_FPU",1,0,$2,0);
+       $$=var;}
     | PSEUDO_TYPE LABEL ',' LABEL
-       {list_node* oprand1=new_node(); list_node* oprand2=new_node(); list_node* oprand3=new_node();
-        oprand1->s="PSEUDO_TYPE"; oprand2->s=$2; oprand3->s=$4;
-        $$=oprand1; oprand1->next=oprand2; oprand2->next=oprand3; }
+       {list_node* var=create_pseudo(PS_TYPE,"PSEUDO_TYPE",1,0,$2,0);
+       pseudo_extend(var->pseu_extend,0,$4,0);
+       $$=var;}
     | PSEUDO_SIZE LABEL ',' LABEL
-       {list_node* oprand1=new_node(); list_node* oprand2=new_node(); list_node* oprand3=new_node();
-        oprand1->s="PSEUDO_SIZE"; oprand2->s=$2; oprand3->s=$4;
-        $$=oprand1; oprand1->next=oprand2; oprand2->next=oprand3; }
+       {list_node* var=create_pseudo(PS_SIZE,"PSEUDO_SIZE",1,0,$2,0);
+       pseudo_extend(var->pseu_extend,0,$4,0);
+       $$=var;}
     | PSEUDO_IDENT STRING
-       {list_node* oprand1=new_node(); list_node* oprand2=new_node();
-        oprand1->s="PSEUDO_IDENT"; oprand2->s=$2;
-        $$=oprand1; oprand1->next=oprand2;}
+       {list_node* var=create_pseudo(PS_IDENT,"PSEUDO_IDENT",1,0,$2,0);
+       $$=var;}
+    | PSEUDO_COMM LABEL ',' NUMBER ',' NUMBER
+       {list_node* var=create_pseudo(PS_SIZE,"PSEUDO_COMM",1,0,$2,0);
+       pseudo_extend(var->pseu_extend,0,$4,0);
+       pseudo_extend(var->pseu_extend->next,0,$6,0);
+       $$=var;}
+    | PSEUDO_WORD LABEL
+       {list_node* var=create_pseudo(PS_WORD,"PSEUDO_WORD",1,0,$2,0);
+       $$=var;}
     ;
 
 STMTS
@@ -115,19 +117,12 @@ STMTS
     ;
 
 STMT
-    : ADD STMT_ADD          {list_node* var=new_node();var->opcd=OPCD_ADD;var->s="ADD";var->ins_32=$2;$$=var;}
-    | AND STMT_AND          {list_node* var=new_node();var->opcd=OPCD_AND;var->s="AND";var->ins_32=$2;$$=var;}
-    | MOV STMT_MOV          {list_node* var=new_node();var->opcd=OPCD_MOV;var->s="MOV";var->ins_32=$2;$$=var;}
-    | STR STMT_STR          {list_node* var=new_node();var->opcd=OPCD_STR;var->s="STR";var->ins_32=$2;$$=var;}
-    | LDR STMT_LDR          {list_node* var=new_node();var->opcd=OPCD_LDR;var->s="LDR";var->ins_32=$2;$$=var;}
-    | B STMT_B              {list_node* var=new_node();var->opcd=OPCD_B;  var->s="B";  var->ins_32=$2;$$=var;}
-    | BEQ STMT_BEQ          {list_node* var=new_node();var->opcd=OPCD_BEQ;var->s="BEQ";var->ins_32=$2;$$=var;}
-    | BGE STMT_BGE          {list_node* var=new_node();var->opcd=OPCD_BGE;var->s="BGE";var->ins_32=$2;$$=var;}
-    | BGT STMT_BGT          {list_node* var=new_node();var->opcd=OPCD_BGT;var->s="BGT";var->ins_32=$2;$$=var;}
-    | BLE STMT_BLE          {list_node* var=new_node();var->opcd=OPCD_BLE;var->s="BLE";var->ins_32=$2;$$=var;}
-    | BLT STMT_BLT          {list_node* var=new_node();var->opcd=OPCD_BLT;var->s="BLT";var->ins_32=$2;$$=var;}
-    | BNE STMT_BNE          {list_node* var=new_node();var->opcd=OPCD_BNE;var->s="BNE";var->ins_32=$2;$$=var;}
-    | BX STMT_BX            {list_node* var=new_node();var->opcd=OPCD_BX;var->s="BX";  var->ins_32=$2;$$=var;}
+    : ADD STMT_ADD          {$$=create_stmt(OPCD_ADD,"ADD",$2);}
+    | AND STMT_AND          {$$=create_stmt(OPCD_AND,"AND",$2);}
+    | MOV STMT_MOV          {$$=create_stmt(OPCD_MOV,"MOV",$2);}
+    | STR STMT_STR          {$$=create_stmt(OPCD_STR,"STR",$2);}
+    | LDR STMT_LDR          {$$=create_stmt(OPCD_LDR,"LDR",$2);}
+    | BX  STMT_BX           {$$=create_stmt(OPCD_BX ,"BX ",$2);}
     ;
 
 STMT_ADD
@@ -140,34 +135,6 @@ STMT_ADD
 STMT_AND
     : REGS ',' REGS ',' IMME
        {$$=create_ins(COND_NOP,OPCD_AND,$3,$1,imm,NULL,$5,0);}
-    ;
-
-STMT_B
-    : LABEL {list_node* oprand1=new_node();oprand1->s=$1;$$=oprand1;}
-    ;
-
-STMT_BEQ
-    : LABEL {list_node* oprand1=new_node();oprand1->s=$1;$$=oprand1;}
-    ;
-
-STMT_BGE
-    : LABEL {list_node* oprand1=new_node();oprand1->s=$1;$$=oprand1;}
-    ;
-
-STMT_BGT
-    : LABEL {list_node* oprand1=new_node();oprand1->s=$1;$$=oprand1;}
-    ;
-
-STMT_BLE
-    : LABEL {list_node* oprand1=new_node();oprand1->s=$1;$$=oprand1;}
-    ;
-
-STMT_BLT
-    : LABEL {list_node* oprand1=new_node();oprand1->s=$1;$$=oprand1;}
-    ;
-
-STMT_BNE
-    : LABEL {list_node* oprand1=new_node();oprand1->s=$1;$$=oprand1;}
     ;
 
 STMT_BX
