@@ -11,23 +11,45 @@
 extern Elf32_Word ins_num;
 extern Elf32_Word sym_num;
 Elf32_Word strtab_len=0;
-
+int sect_num=7;
+int shstr_len=44;
+Elf32_Off shoff=0;
 int to_hex(FILE *fp,list_node* root)
 {
-    elf_header(fp);
-    //test_text(fp);
-    text(fp, root);
-    data(fp);
-    bss(fp);
-    symtab(fp,root);
-    strtab(fp,root);
-//    test_strtab(fp);
-    shstrtab(fp);
-    section_header_table(fp,7);
-//    test_section_header_table(fp);
+    char* c_elfhd,*c_text,*c_data,*c_bss,*c_sym,*c_str,*c_shstr,*c_shdt;
+    c_text=text(root);
+    c_data=data();
+    c_bss=bss();
+    c_sym=symtab(root);
+    c_str=strtab(root);
+    c_shstr=shstrtab();
+    c_shdt=section_header_table();
+
+    c_elfhd=elf_header();
+    write_to_file(c_elfhd,c_text,c_data,c_bss,c_sym,c_str,c_shstr,c_shdt,fp);
     return 0;
 }
-int elf_header(FILE *fp)
+int write_to_file(char* c_elfhd,char* c_text,char* c_data,
+                  char* c_bss,char* c_sym,char* c_str,
+                  char* c_shstr,char* c_shdt,FILE* fp)
+{
+    for(int i=0;i<sizeof(Elf32_Ehdr);i++)
+        fprintf(fp,"%c",c_elfhd[i]);
+    for(int i=0;i<sizeof(Elf32_Word)*ins_num;i++)
+        fprintf(fp,"%c",c_text[i]);
+//    data
+//    bss
+    for(int i=0;i<sizeof(Elf32_Sym)*sym_num;i++)
+        fprintf(fp,"%c",c_sym[i]);
+    for(int i=0;i<strtab_len;i++)
+        fprintf(fp,"%c",c_str[i]);
+    for(int i=0;i<sizeof(char)*shstr_len;i++)
+        fprintf(fp,"%c",c_shstr[i]);
+    for(int i=0;i<sizeof(Elf32_Shdr)*sect_num;i++)
+        fprintf(fp,"%c",c_shdt[i]);
+    return 0;
+}
+char* elf_header(FILE *fp)
 {
     Elf32_Ehdr* header= malloc(sizeof (Elf32_Ehdr));
     memcpy(header->e_ident,"\177ELF\1\1\1\0\0\0\0\0\0\0\0\0",16);   /* Magic number and other info */
@@ -36,21 +58,19 @@ int elf_header(FILE *fp)
     header->e_version=0x00000001;   /* Object file version */
     header->e_entry=0x00000000;     /* Entry point virtual address */
     header->e_phoff=0x00000000; 	/* Program header table file offset */
-    header->e_shoff=0x000000bc;		/* Section header table file offset */
+    header->e_shoff=shoff;		/* Section header table file offset */
     header->e_flags=0x05000000;		/* Processor-specific flags */
     header->e_ehsize=0x0034;		/* ELF header size in bytes */
     header->e_phentsize=0x0000;		/* Program header table entry size */
     header->e_phnum=0x0000;		    /* Program header table entry count */
     header->e_shentsize=0x0028;		/* Section header table entry size */
-    header->e_shnum=0x0007;		    /* Section header table entry count */
-    header->e_shstrndx=0x0006;		/* Section header string table index */
+    header->e_shnum=sect_num;		    /* Section header table entry count */
+    header->e_shstrndx=sect_num-1;		/* Section header string table index */
 
     char* header_char=(char*)header;
-    for(int i=0;i<sizeof(Elf32_Ehdr);i++)
-        fprintf(fp,"%c",header_char[i]);
-    return 0;
+    return header_char;
 }
-int text(FILE *fp,list_node* root)
+char* text(list_node* root)
 {
     Elf32_Word* instruction_set=malloc(sizeof(Elf32_Word)*ins_num);
     int ins_count=0;
@@ -69,10 +89,7 @@ int text(FILE *fp,list_node* root)
         }
         cur0=cur0->next;
     }
-    char* text_char=(char*)instruction_set;
-    for(int i=0;i<sizeof(Elf32_Word)*ins_num;i++)
-        fprintf(fp,"%c",text_char[i]);
-    return 0;
+    return (char*)instruction_set;
 }
 int process_condition(Elf32_Word* target, condition_enum cond)
 {
@@ -285,15 +302,15 @@ int process_ins(instruction_32* ptr_ins,Elf32_Word* instruction_set,int ins_coun
     *(instruction_set + ins_count)=target;
     return 0;
 }
-int data(FILE *fp)
+char* data()
 {
-    return 0;
+    return NULL;
 }
-int bss(FILE *fp)
+char* bss()
 {
-    return 0;
+    return NULL;
 }
-int symtab(FILE *fp,list_node* root)
+char* symtab(list_node* root)
 {
     sym_num++;
     Elf32_Sym* sym_set=malloc(sizeof(Elf32_Sym)*sym_num);
@@ -301,9 +318,6 @@ int symtab(FILE *fp,list_node* root)
     symtab_list *my_symtab = new_symtab(0,0,0,0,0);
     get_symtab(my_symtab, root);
     symtab_list *cur=my_symtab;
-
-//    FILE* debug;
-//    debug = freopen("./debug.txt","w",stdin);
 
     unsigned int pos=0;
     (sym_set+pos)->st_name=0x00;		/* Symbol name (string tbl index) */
@@ -323,22 +337,14 @@ int symtab(FILE *fp,list_node* root)
         (sym_set+pos)->st_info=cur->st_info;		/* Symbol type and binding */
         (sym_set+pos)->st_other=0x00;		/* Symbol visibility */
         (sym_set+pos)->st_shndx=cur->st_shndx;		/* Section index */
-//        fprintf(debug,"%d ",pos);
-
         pos++;
     }
 
-//    fclose(debug);
     char* sym_set_char=(char*)sym_set;
-    for(int i=0;i<sizeof(Elf32_Sym)*sym_num;i++)
-        fprintf(fp,"%c",sym_set_char[i]);
-
-    return 0;
+    return sym_set_char;
 }
 int get_symtab(symtab_list* my_symtab,list_node* root)
 {
-//    FILE* debug;
-//    debug = freopen("./debug.txt","w",stdin);
     symtab_list* cur_symtab=my_symtab;
     list_node* cur0=root;
     Elf32_Word pos=1;
@@ -372,7 +378,7 @@ int get_symtab(symtab_list* my_symtab,list_node* root)
     }
     return 0;
 }
-int strtab(FILE *fp,list_node* root)
+char* strtab(list_node* root)
 {
     char* str_set;
     unsigned int len=1;
@@ -380,17 +386,12 @@ int strtab(FILE *fp,list_node* root)
     strtab_list *my_strtab = new_strtab(NULL);
     get_strtab(my_strtab, root);
 
-//    FILE* debug;
-//    debug = freopen("./debug.txt","w",stdin);
-
     strtab_list *cur=my_strtab;
     while(cur->next!=NULL){
         cur=cur->next;
         len += strlen(cur->s);
         len++;
     }
-//    fprintf(debug,"%d",len);
-//    fclose(debug);
     strtab_len=len;
 
     str_set=malloc(sizeof(char)*len);
@@ -405,9 +406,7 @@ int strtab(FILE *fp,list_node* root)
         pos++;
     }
 
-    for(int i=0;i<len;i++)
-        fprintf(fp,"%c",str_set[i]);
-    return 0;
+    return str_set;
 }
 int get_strtab(strtab_list* my_strtab,list_node* root)
 {
@@ -438,15 +437,13 @@ int get_strtab(strtab_list* my_strtab,list_node* root)
     }
     return 0;
 }
-int shstrtab(FILE *fp)
+char* shstrtab()
 {
-    char* shstr_set=malloc(sizeof(char)*44);
-    memcpy(shstr_set,"\000.symtab\000.strtab\000.shstrtab\000.text\000.data\000.bss\000",44);
-    for(int i=0;i<sizeof(char)*44;i++)
-        fprintf(fp,"%c",shstr_set[i]);
-    return 0;
+    char* shstr_set=malloc(sizeof(char)*shstr_len);
+    memcpy(shstr_set,"\000.symtab\000.strtab\000.shstrtab\000.text\000.data\000.bss\000",shstr_len);
+    return shstr_set;
 }
-int section_header_table(FILE *fp,int sect_num)
+char* section_header_table()
 {
     Elf32_Shdr* shdr_set=malloc(sizeof(Elf32_Shdr)*sect_num);
     Elf32_Off hd_off=0x00000034;
@@ -545,10 +542,9 @@ int section_header_table(FILE *fp,int sect_num)
     (shdr_set+pos)->sh_entsize=0x00000000;		/* Entry size if section holds table */
     pos++;
 
+    shoff=(shdr_set+pos-1)->sh_offset+(shdr_set+pos-1)->sh_size;
     char* shdr_set_char=(char*)shdr_set;
-    for(int i=0;i<sizeof(Elf32_Shdr)*sect_num;i++)
-        fprintf(fp,"%c",shdr_set_char[i]);
-    return 0;
+    return shdr_set_char;
 }
 
 // test_to_hex() is a test hex converter literally written by hand

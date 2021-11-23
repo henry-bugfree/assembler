@@ -22,7 +22,7 @@ int main(int argc, char* argv[])
     fclose(input);
 
     FILE* fp;
-    fp = freopen("./00_main.o", "wb", stdout);
+    fp = fopen("./00_main.o", "wb");
     to_hex(fp,list_root);
 //    test_to_hex(fp);
     fclose(fp);
