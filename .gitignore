@@ -8,6 +8,7 @@ as.output
 /lab2/
 /lab3/
 /playground/
-/.sy_testcase/
-/.s_testcase/
+/sy_testcase/
+/s_testcase/
+/o_testcase/
 /docs/
